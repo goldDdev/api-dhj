@@ -5,18 +5,23 @@ export default class extends BaseSchema {
 
   public async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.increments('id')
+      table.increments('id').primary()
       table.integer('employee_id').index('pa_emp_id')
       table.integer('project_id').index('pa_prj_id')
-      table.enum('absent', ['A', 'P', 'O']).nullable().defaultTo('P').comment('jenis kehadiran')
+      table
+        .enum('absent', ['A', 'P', 'O', 'L'])
+        .nullable()
+        .defaultTo('P')
+        .comment('jenis kehadiran')
       table.date('absent_at').nullable().nullable().defaultTo(null).comment('tanggal')
       table.time('come_at').nullable().defaultTo(null).comment('jam kehadiran')
       table.time('close_at').nullable().defaultTo(null).comment('jam pulang')
-      table.decimal('latitude', 10, 8)
-      table.decimal('longitude', 11, 8)
+      table.decimal('latitude', 10, 8).defaultTo(0)
+      table.decimal('longitude', 11, 8).defaultTo(0)
       table.smallint('late_duration').nullable().defaultTo(0).comment('durasi keterlambatan')
       table.bigInteger('late_price').nullable().defaultTo(0).comment('potongan ketelmabatan')
       table.smallint('duration').nullable().defaultTo(0).comment('durasi jam kerja')
+      table.string('photo').nullable().defaultTo(null)
       table
         .integer('replace_by', 10)
         .nullable()

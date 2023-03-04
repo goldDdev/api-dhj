@@ -7,6 +7,8 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
       table.string('name').index('prj_name')
+
+      table.string('no_spk').nullable().defaultTo(null)
       table.string('company_name', 64).nullable().defaultTo(null).index('prj_cmp_name')
       table
         .text('contact')
@@ -15,13 +17,14 @@ export default class extends BaseSchema {
         .index('prj_contact')
         .comment('kontak yang bisa dihubungi klien proyek')
       table.date('start_at').nullable().defaultTo(null).comment('tanggal plan')
+      table.date('finish_at').nullable().defaultTo(null).comment('tanggal plan')
       table.smallint('duration').nullable().defaultTo(0).comment('lama penngerjaan')
       table.bigInteger('price').nullable().defaultTo(0).comment('biaya proyek')
       table.text('location').nullable().defaultTo(null)
       table.decimal('latitude', 10, 8)
       table.decimal('longitude', 11, 8)
       table
-        .enum('status', ['DRAFT', 'PROGRESS', 'CANCELLED', 'PENDING', 'DONE'])
+        .enum('status', ['DRAFT', 'PROGRESS', 'CANCELLED', 'PENDING', 'DONE', 'REVIEW'])
         .nullable()
         .defaultTo('DRAFT')
       table.text('note').nullable().defaultTo(null)

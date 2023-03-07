@@ -1,7 +1,7 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import * as vld from '@ioc:Adonis/Core/Validator'
 import Employee from 'App/Models/Employee'
-import moment from 'moment'
+// import moment from 'moment'
 
 export default class EmployeesController {
   public async index({ response, request }: HttpContextContract) {
@@ -29,6 +29,7 @@ export default class EmployeesController {
 
   public async view({ auth, request, response }: HttpContextContract) {
     try {
+      console.log(auth)
       const employee = await Employee.findOrFail(request.param('id'))
       return response.created({ data: employee })
     } catch (error) {
@@ -38,6 +39,7 @@ export default class EmployeesController {
 
   public async create({ auth, request, response }: HttpContextContract) {
     try {
+      console.log(auth)
       await request.validate({
         schema: vld.schema.create({
           name: vld.schema.string([vld.rules.minLength(3)]),
@@ -67,6 +69,7 @@ export default class EmployeesController {
 
   public async update({ auth, request, response }: HttpContextContract) {
     try {
+      console.log(auth)
       await request.validate({
         schema: vld.schema.create({
           id: vld.schema.number([vld.rules.exists({ table: 'employees', column: 'id' })]),
@@ -102,6 +105,7 @@ export default class EmployeesController {
 
   public async status({ auth, request, response }: HttpContextContract) {
     try {
+      console.log(auth)
       await request.validate({
         schema: vld.schema.create({
           id: vld.schema.number([vld.rules.exists({ table: 'employees', column: 'id' })]),
@@ -111,7 +115,7 @@ export default class EmployeesController {
 
       const employee = await Employee.find(request.input('id'))
       if (employee) {
-        employee.inactiveAt = employee.inactiveAt ? null : moment().format()
+        // employee.inactiveAt = employee.inactiveAt ? null : moment().format()
         employee.inactiveNote = request.input('invoiceNote')
         await employee.save()
       }

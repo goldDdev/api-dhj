@@ -19,14 +19,10 @@
 */
 
 import Route from '@ioc:Adonis/Core/Route'
+
 import('./web')
+import('./mobile')
 
 Route.get('/', async () => {
   return { hello: 'world' }
 })
-
-// Route.get('/*', ({ response }) => {
-//   return response.status(404).json({
-//     page: 'Not Found',
-//   })
-// })

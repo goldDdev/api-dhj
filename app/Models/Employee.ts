@@ -1,4 +1,3 @@
-import { DateTime } from 'luxon'
 import { BaseModel, column, computed } from '@ioc:Adonis/Lucid/Orm'
 
 export default class Employee extends BaseModel {

@@ -19,7 +19,7 @@ export default class extends BaseSchema {
       table.date('start_at').nullable().defaultTo(null).comment('tanggal plan')
       table.date('finish_at').nullable().defaultTo(null).comment('tanggal plan')
       table.smallint('duration').nullable().defaultTo(0).comment('lama penngerjaan')
-      table.bigInteger('price').nullable().defaultTo(0).comment('biaya proyek')
+      table.bigInteger('price').unsigned().nullable().defaultTo(0).comment('biaya proyek')
       table.text('location').nullable().defaultTo(null)
       table.decimal('latitude', 10, 8)
       table.decimal('longitude', 11, 8)

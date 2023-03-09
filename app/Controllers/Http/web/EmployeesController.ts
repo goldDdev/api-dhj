@@ -39,7 +39,6 @@ export default class EmployeesController {
 
   public async create({ auth, request, response }: HttpContextContract) {
     try {
-      console.log(auth)
       await request.validate({
         schema: vld.schema.create({
           name: vld.schema.string([vld.rules.minLength(3)]),
@@ -60,7 +59,15 @@ export default class EmployeesController {
         }),
       })
 
-      const employee = await Employee.create(request.body())
+      const { phoneNumber, name, hourlyWages, salary, role, cardID } = request.body()
+      const employee = await Employee.create({
+        phoneNumber,
+        name,
+        hourlyWages,
+        salary,
+        role,
+        cardID,
+      })
       return response.created({ data: employee })
     } catch (error) {
       return response.unprocessableEntity({ error })

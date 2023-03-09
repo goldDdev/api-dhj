@@ -1,11 +1,8 @@
 import Route from '@ioc:Adonis/Core/Route'
-import EmployeesController from 'App/Controllers/Http/web/EmployeesController'
 
 Route.group(() => {
   Route.group(() => {
-    Route.get('/login', () => {
-      return {}
-    })
+    Route.post('/login', 'AuthController.login')
   }).prefix('auth')
 
   Route.group(() => {
@@ -15,6 +12,14 @@ Route.group(() => {
     Route.put('/status', 'EmployeesController.status')
     Route.get('/:id/detail', 'EmployeesController.view')
   }).prefix('employee')
+
+  Route.group(() => {
+    Route.get('/', 'ProjectsController.index')
+    Route.post('/', 'ProjectsController.create')
+    Route.put('/', 'ProjectsController.update')
+    Route.put('/status', 'ProjectsController.status')
+    Route.get('/:id/detail', 'ProjectsController.view')
+  }).prefix('project')
 })
   .namespace('App/Controllers/Http/web')
   .prefix('web')

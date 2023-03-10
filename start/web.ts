@@ -22,6 +22,8 @@ Route.group(() => {
     Route.delete('/:id/worker', 'ProjectsController.removeWorker')
     Route.get('/:id/detail', 'ProjectsController.view')
   }).prefix('project')
+
+  Route.resource('boq', 'BoqsController').except(['create', 'edit'])
 })
   .namespace('App/Controllers/Http/web')
   .prefix('web')

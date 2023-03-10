@@ -1,6 +1,7 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Project, { ProjectStatus } from 'App/Models/Project'
+import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import moment from 'moment'
 
 export default class ProjectsController {
@@ -16,8 +17,17 @@ export default class ProjectsController {
   public async view({ request, response }: HttpContextContract) {
     try {
       const model = await Project.findOrFail(request.param('id'))
-      return response.ok({ data: model.serialize() })
+      await model.load('workers', (q) =>
+        q
+          .select('*', 'project_workers.id as id', 'project_workers.role as role')
+          .leftJoin('employees', 'employees.id', '=', 'project_workers.employee_id')
+      )
+
+      return response.ok({
+        data: model.serialize(),
+      })
     } catch (error) {
+      console.log(error)
       return response.notFound({ error })
     }
   }
@@ -128,6 +138,44 @@ export default class ProjectsController {
       return response.ok({
         data: model.serialize(),
       })
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async addWorker({ request, response }: HttpContextContract) {
+    try {
+      const payload = await request.validate({
+        schema: schema.create({
+          projectId: schema.number(),
+          employeeId: schema.number([
+            rules.unique({
+              table: 'project_workers',
+              column: 'employee_id',
+              where: {
+                project_id: request.input('projectId'),
+                employee_id: request.input('employeeId'),
+              },
+            }),
+          ]),
+          role: schema.string(),
+        }),
+      })
+
+      const model = await ProjectWorker.create({ ...payload, status: ProjectWorkerStatus.ACTIVE })
+      await model.refresh()
+
+      return response.created({ data: model.serialize() })
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async removeWorker({ request, response }: HttpContextContract) {
+    try {
+      const model = await ProjectWorker.findOrFail(request.param('id'))
+      await model.delete()
+      return response.noContent()
     } catch (error) {
       return response.unprocessableEntity({ error })
     }

@@ -18,6 +18,8 @@ Route.group(() => {
     Route.post('/', 'ProjectsController.create')
     Route.put('/', 'ProjectsController.update')
     Route.put('/status', 'ProjectsController.status')
+    Route.post('/worker', 'ProjectsController.addWorker')
+    Route.delete('/:id/worker', 'ProjectsController.removeWorker')
     Route.get('/:id/detail', 'ProjectsController.view')
   }).prefix('project')
 })

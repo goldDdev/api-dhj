@@ -1,4 +1,5 @@
 import { BaseModel, column, computed } from '@ioc:Adonis/Lucid/Orm'
+import { DateTime } from 'luxon'
 
 export default class Employee extends BaseModel {
   public static table = 'employees'

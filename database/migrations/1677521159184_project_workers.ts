@@ -24,7 +24,10 @@ export default class extends BaseSchema {
         ])
         .defaultTo('WORKER')
         .comment('kadang bisa saja pekerja jadi mandor')
-      table.enum('status', ['ACTIVE', 'DONE']).comment('status pekerja dalam proyek')
+      table
+        .enum('status', ['ACTIVE', 'DONE'])
+        .defaultTo('ACTIVE')
+        .comment('status pekerja dalam proyek')
       table.date('join_at').nullable().defaultTo(null).comment('tanggal bergabung')
       table.text('note').nullable().defaultTo(null)
 

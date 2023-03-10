@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, HasMany, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
+import ProjectWorker from './ProjectWorker'
 
 export enum ProjectStatus {
   DRAFT = 'DRAFT',
@@ -60,4 +61,7 @@ export default class Project extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
+
+  @hasMany(() => ProjectWorker, { foreignKey: 'projectId', localKey: 'id' })
+  public workers: HasMany<typeof ProjectWorker>
 }

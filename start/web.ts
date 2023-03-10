@@ -24,6 +24,7 @@ Route.group(() => {
   }).prefix('project')
 
   Route.resource('boq', 'BoqsController').except(['create', 'edit'])
+  Route.resource('user', 'UsersController').except(['create', 'edit'])
 })
   .namespace('App/Controllers/Http/web')
   .prefix('web')

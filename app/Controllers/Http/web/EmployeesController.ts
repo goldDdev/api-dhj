@@ -39,6 +39,7 @@ export default class EmployeesController {
 
   public async create({ auth, request, response }: HttpContextContract) {
     try {
+      console.log(auth)
       await request.validate({
         schema: vld.schema.create({
           name: vld.schema.string([vld.rules.minLength(3)]),

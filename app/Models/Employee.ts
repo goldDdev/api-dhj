@@ -1,5 +1,20 @@
-import { BaseModel, column, computed } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, HasOne, column, computed, hasOne } from '@ioc:Adonis/Lucid/Orm'
 import { DateTime } from 'luxon'
+import User from './User'
+
+export enum EmployeeType {
+  PM = 'PM',
+  PCC = 'PCC',
+  PC = 'PC',
+  QS = 'QS',
+  QCC = 'QCC',
+  QC = 'QC',
+  SUP = 'SUP',
+  SPV = 'SPV',
+  MANDOR = 'MANDOR',
+  STAFF = 'STAFF',
+  WORKER = 'WORKER',
+}
 
 export default class Employee extends BaseModel {
   public static table = 'employees'
@@ -17,16 +32,16 @@ export default class Employee extends BaseModel {
   public phoneNumber: string
 
   @column({ columnName: 'inactive_at', serializeAs: 'inactiveAt' })
-  public inactiveAt: string | null
+  public inactiveAt?: string
 
   @column({
     columnName: 'inactive_note',
     serializeAs: 'invoiceNote',
   })
-  public inactiveNote: string
+  public inactiveNote?: string
 
   @column({ columnName: 'hourly_wages', serializeAs: 'hourlyWages' })
-  public hourlyWages: number
+  public hourlyWages?: number
 
   @column({ columnName: 'salary', serializeAs: 'salary' })
   public salary: number
@@ -49,4 +64,7 @@ export default class Employee extends BaseModel {
     serializeAs: 'updatedAt',
   })
   public updatedAt: DateTime
+
+  @hasOne(() => User)
+  public user: HasOne<typeof User>
 }

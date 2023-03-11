@@ -1,8 +1,8 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import * as vld from '@ioc:Adonis/Core/Validator'
-import Employee from 'App/Models/Employee'
-// import moment from 'moment'
-
+import { schema, rules } from '@ioc:Adonis/Core/Validator'
+import Database from '@ioc:Adonis/Lucid/Database'
+import Employee, { EmployeeType } from 'App/Models/Employee'
+import Logger from '@ioc:Adonis/Core/Logger'
 export default class EmployeesController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
@@ -38,75 +38,112 @@ export default class EmployeesController {
   }
 
   public async create({ auth, request, response }: HttpContextContract) {
+    const trx = await Database.transaction()
     try {
-      console.log(auth)
-      await request.validate({
-        schema: vld.schema.create({
-          name: vld.schema.string([vld.rules.minLength(3)]),
-          phoneNumber: vld.schema.string([
-            vld.rules.minLength(10),
-            vld.rules.unique({
+      const payload = await request.validate({
+        schema: schema.create({
+          name: schema.string([rules.minLength(3)]),
+          phoneNumber: schema.string([
+            rules.minLength(10),
+            rules.unique({
               table: 'employees',
               column: 'phone_number',
             }),
           ]),
-          cardID: vld.schema.string([
-            vld.rules.minLength(8),
-            vld.rules.unique({
+          cardID: schema.string([
+            rules.minLength(8),
+            rules.unique({
               table: 'employees',
               column: 'card_id',
+            }),
+          ]),
+          role: schema.string(),
+          hourlyWages: schema.number.optional(),
+          salary: schema.number.optional(),
+          email: schema.string.optional([
+            rules.unique({
+              table: 'users',
+              column: 'email',
+              whereNot: {
+                email: null,
+              },
             }),
           ]),
         }),
       })
 
-      const { phoneNumber, name, hourlyWages, salary, role, cardID } = request.body()
-      const employee = await Employee.create({
-        phoneNumber,
-        name,
-        hourlyWages,
-        salary,
-        role,
-        cardID,
-      })
-      return response.created({ data: employee })
+      const { email, ...emp } = payload
+      const model = await Employee.create(emp, { client: trx })
+      if (payload.role !== EmployeeType.WORKER) {
+        await model.related('user').create({ email, password: model.phoneNumber })
+      }
+      await trx.commit()
+      return response.created({ data: { ...model.serialize(), email } })
     } catch (error) {
+      await trx.rollback()
       return response.unprocessableEntity({ error })
     }
   }
 
   public async update({ auth, request, response }: HttpContextContract) {
+    const trx = await Database.transaction()
     try {
-      console.log(auth)
-      await request.validate({
-        schema: vld.schema.create({
-          id: vld.schema.number([vld.rules.exists({ table: 'employees', column: 'id' })]),
-          name: vld.schema.string([vld.rules.minLength(3)]),
-          phoneNumber: vld.schema.string([
-            vld.rules.minLength(10),
-            vld.rules.unique({
+      const payload = await request.validate({
+        schema: schema.create({
+          id: schema.number(),
+          name: schema.string([rules.minLength(3)]),
+          phoneNumber: schema.string([
+            rules.minLength(10),
+            rules.unique({
               table: 'employees',
               column: 'phone_number',
-              whereNot: { id: request.input('id') },
+              whereNot: {
+                id: request.input('id'),
+              },
             }),
           ]),
-          cardID: vld.schema.string([
-            vld.rules.minLength(8),
-            vld.rules.unique({
+          cardID: schema.string([
+            rules.minLength(8),
+            rules.unique({
               table: 'employees',
               column: 'card_id',
-              whereNot: { id: request.input('id') },
+              whereNot: {
+                id: request.input('id'),
+              },
+            }),
+          ]),
+          role: schema.string(),
+          hourlyWages: schema.number.optional(),
+          salary: schema.number.optional(),
+          email: schema.string.optional([
+            rules.unique({
+              table: 'users',
+              column: 'email',
+              whereNot: {
+                email: null,
+                employee_id: request.input('id'),
+              },
             }),
           ]),
         }),
       })
 
-      const employee = await Employee.find(request.input('id'))
-      if (employee) {
-        await employee.merge(request.body()).save()
+      const { email, ...emp } = payload
+      const model = await Employee.find(request.input('id'), { client: trx })
+      if (model) {
+        const current = model
+        await model.load('user')
+        await model.merge(emp).save()
+        if (email) {
+          await model.user.merge({ email }).save()
+        }
+        await trx.commit()
+        return response
+          .status(200)
+          .json({ data: { ...current.serialize(), email: model.user.email } })
       }
-      return response.status(200).json({ data: employee })
     } catch (error) {
+      await trx.rollback()
       return response.unprocessableEntity({ error })
     }
   }
@@ -115,9 +152,9 @@ export default class EmployeesController {
     try {
       console.log(auth)
       await request.validate({
-        schema: vld.schema.create({
-          id: vld.schema.number([vld.rules.exists({ table: 'employees', column: 'id' })]),
-          invoiceNote: vld.schema.string.nullable(),
+        schema: schema.create({
+          id: schema.number([rules.exists({ table: 'employees', column: 'id' })]),
+          invoiceNote: schema.string.nullable(),
         }),
       })
 

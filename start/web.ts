@@ -23,6 +23,9 @@ Route.group(() => {
     Route.get('/:id/detail', 'ProjectsController.view')
     Route.get('/:id/worker', 'ProjectsController.listWorker')
   }).prefix('project')
+
+  Route.resource('boq', 'BoqsController').except(['create', 'edit'])
+  Route.resource('user', 'UsersController').except(['create', 'edit'])
 })
   .namespace('App/Controllers/Http/web')
   .prefix('web')

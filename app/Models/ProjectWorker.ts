@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, HasMany, belongsTo, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import Employee from './Employee'
 
 export enum ProjectWorkerStatus {
@@ -18,6 +18,9 @@ export default class ProjectWorker extends BaseModel {
 
   @column({ columnName: 'project_id', serializeAs: 'projectId' })
   public projectId: number
+
+  @column({ columnName: 'parent_id', serializeAs: 'parentId' })
+  public parentId: number
 
   @column({ columnName: 'role', serializeAs: 'role' })
   public role: string
@@ -43,11 +46,14 @@ export default class ProjectWorker extends BaseModel {
   })
   public employee: BelongsTo<typeof Employee>
 
+  @hasMany(() => ProjectWorker, { foreignKey: 'parentId', localKey: 'id' })
+  public members: HasMany<typeof ProjectWorker>
+
   public serializeExtras() {
     return {
       name: this.$extras.name,
-      cardID: this.$extras.card_id,
-      phoneNumber: this.$extras.phone_number,
+      cardID: this.$extras.cardID,
+      phoneNumber: this.$extras.phoneNumber,
     }
   }
 }

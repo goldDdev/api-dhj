@@ -17,12 +17,6 @@ export default class ProjectsController {
   public async view({ request, response }: HttpContextContract) {
     try {
       const model = await Project.findOrFail(request.param('id'))
-      await model.load('workers', (q) =>
-        q
-          .select('*', 'project_workers.id as id', 'project_workers.role as role')
-          .leftJoin('employees', 'employees.id', '=', 'project_workers.employee_id')
-      )
-
       return response.ok({
         data: model.serialize(),
       })
@@ -143,6 +137,33 @@ export default class ProjectsController {
     }
   }
 
+  public async listWorker({ request, response }: HttpContextContract) {
+    const query = await ProjectWorker.query()
+      .select(
+        '*',
+        'project_workers.id',
+        'project_workers.role',
+        'employees.card_id as cardID',
+        'employees.phone_number as phoneNumber'
+      )
+      .preload('members', (query) => {
+        query
+          .select(
+            '*',
+            'project_workers.id',
+            'project_workers.role',
+            'employees.card_id as cardID',
+            'employees.phone_number as phoneNumber'
+          )
+          .join('employees', 'employees.id', '=', 'project_workers.employee_id')
+      })
+      .join('employees', 'employees.id', '=', 'project_workers.employee_id')
+      .whereNull('parent_id')
+      .where('project_id', request.param('id'))
+
+    return response.send({ data: query })
+  }
+
   public async addWorker({ request, response }: HttpContextContract) {
     try {
       const payload = await request.validate({
@@ -159,13 +180,22 @@ export default class ProjectsController {
             }),
           ]),
           role: schema.string(),
+          parentId: schema.number.optional(),
         }),
       })
 
       const model = await ProjectWorker.create({ ...payload, status: ProjectWorkerStatus.ACTIVE })
-      await model.refresh()
+      const worker = model.serialize()
+      await model.load('employee')
 
-      return response.created({ data: model.serialize() })
+      return response.created({
+        data: {
+          ...worker,
+          name: model.employee.name,
+          cardID: model.employee.cardID,
+          phoneNumber: model.employee.phoneNumber,
+        },
+      })
     } catch (error) {
       return response.unprocessableEntity({ error })
     }
@@ -174,8 +204,10 @@ export default class ProjectsController {
   public async removeWorker({ request, response }: HttpContextContract) {
     try {
       const model = await ProjectWorker.findOrFail(request.param('id'))
+      await model.load('employee')
+      const current = model.employee.serialize()
       await model.delete()
-      return response.noContent()
+      return response.ok({ data: current })
     } catch (error) {
       return response.unprocessableEntity({ error })
     }

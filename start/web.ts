@@ -21,6 +21,7 @@ Route.group(() => {
     Route.post('/worker', 'ProjectsController.addWorker')
     Route.delete('/:id/worker', 'ProjectsController.removeWorker')
     Route.get('/:id/detail', 'ProjectsController.view')
+    Route.get('/:id/worker', 'ProjectsController.listWorker')
   }).prefix('project')
 })
   .namespace('App/Controllers/Http/web')

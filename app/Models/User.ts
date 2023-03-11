@@ -8,8 +8,10 @@ import {
   BelongsTo,
   HasOne,
   hasOne,
+  afterFind,
 } from '@ioc:Adonis/Lucid/Orm'
 import Employee from './Employee'
+import { ProjectWorkerStatus } from './ProjectWorker'
 
 export default class User extends BaseModel {
   public static table = 'users'
@@ -48,9 +50,12 @@ export default class User extends BaseModel {
     }
   }
 
-  @hasOne(() => User, {
-    localKey: 'id',
-    foreignKey: 'employeeId',
-  })
-  public user: HasOne<typeof User>
+  @afterFind()
+  public static async afterFindHook(user: User) {
+    await user.load('employee', (query) => {
+      query.preload('work', (query) => {
+        query.where('status', ProjectWorkerStatus.ACTIVE).orderBy('id', 'asc')
+      })
+    })
+  }
 }

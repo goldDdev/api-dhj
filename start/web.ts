@@ -19,9 +19,10 @@ Route.group(() => {
     Route.put('/', 'ProjectsController.update')
     Route.put('/status', 'ProjectsController.status')
     Route.post('/worker', 'ProjectsController.addWorker')
-    Route.delete('/:id/worker', 'ProjectsController.removeWorker')
+    Route.get('/:id/absent', 'ProjectsController.absent')
     Route.get('/:id/detail', 'ProjectsController.view')
     Route.get('/:id/worker', 'ProjectsController.listWorker')
+    Route.delete('/:id/worker', 'ProjectsController.removeWorker')
   }).prefix('project')
 
   Route.resource('boq', 'BoqsController').except(['create', 'edit'])

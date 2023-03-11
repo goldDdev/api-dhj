@@ -11,7 +11,7 @@ export default class extends BaseSchema {
       table
         .enum('absent', ['A', 'P', 'O', 'L'])
         .nullable()
-        .defaultTo('P')
+        .defaultTo(null)
         .comment('jenis kehadiran')
       table.date('absent_at').nullable().nullable().defaultTo(null).comment('tanggal')
       table.time('come_at').nullable().defaultTo(null).comment('jam kehadiran')

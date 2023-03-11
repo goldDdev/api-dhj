@@ -1,5 +1,14 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
+import Employee from './Employee'
+import Project from './Project'
+
+export enum AbsentType {
+  A = 'A',
+  P = 'P',
+  O = 'O',
+  L = 'L',
+}
 
 export default class ProjectAbsent extends BaseModel {
   public static table = 'project_absents'
@@ -7,32 +16,35 @@ export default class ProjectAbsent extends BaseModel {
   @column({ isPrimary: true })
   public id: number
 
-  @column()
-  public name: string
+  @column({ columnName: 'employee_id', serializeAs: 'employeeId' })
+  public employeeId: number
+
+  @column({ columnName: 'project_id', serializeAs: 'projectId' })
+  public projectId: number
 
   @column()
-  public contact: string
+  public absent: string
 
-  @column({ columnName: 'no_spk', serializeAs: 'noSpk' })
-  public noSpk: string
+  @column({ columnName: 'absent_at', serializeAs: 'absentAt' })
+  public absentAt: string
 
-  @column({ columnName: 'company_name', serializeAs: 'companyName' })
-  public companyName: string
+  @column({ columnName: 'come_at', serializeAs: 'comeAt' })
+  public comeAt: string
 
-  @column.date({ columnName: 'start_at', serializeAs: 'startAt' })
-  public startAt: DateTime
+  @column({ columnName: 'close_at', serializeAs: 'closeAt' })
+  public closeAt: string
 
-  @column.date({ columnName: 'finish_at', serializeAs: 'finishAt' })
-  public finishAt: DateTime
+  @column({ columnName: 'late_duration', serializeAs: 'lateDuration' })
+  public lateDuration: number
+
+  @column({ columnName: 'late_price', serializeAs: 'latePrice' })
+  public latePrice: number
 
   @column({ columnName: 'duration', serializeAs: 'duration' })
   public duration: number
 
-  @column({ columnName: 'price', serializeAs: 'price', consume: (value) => +value })
-  public price: number
-
-  @column({ columnName: 'location', serializeAs: 'location' })
-  public location: string
+  @column()
+  public photo: string
 
   @column({ columnName: 'latitude', serializeAs: 'latitude' })
   public latitude: number
@@ -40,8 +52,11 @@ export default class ProjectAbsent extends BaseModel {
   @column({ columnName: 'longitude', serializeAs: 'longitude' })
   public longitude: number
 
-  @column({ columnName: 'status', serializeAs: 'status' })
-  public status: string
+  @column({ columnName: 'absent_by', serializeAs: 'absentBy' })
+  public absentBy: number
+
+  @column({ columnName: 'replace_by', serializeAs: 'replaceBy' })
+  public replaceBy: number
 
   @column({ columnName: 'note', serializeAs: 'note' })
   public note: string
@@ -51,4 +66,37 @@ export default class ProjectAbsent extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
+
+  @belongsTo(() => Employee, {
+    localKey: 'id',
+    foreignKey: 'employeeId',
+  })
+  public employee: BelongsTo<typeof Employee>
+
+  @belongsTo(() => Employee, {
+    localKey: 'id',
+    foreignKey: 'replaceBy',
+  })
+  public replaceEmployee: BelongsTo<typeof Employee>
+
+  @belongsTo(() => Employee, {
+    localKey: 'id',
+    foreignKey: 'absentBy',
+  })
+  public absentEmployee: BelongsTo<typeof Employee>
+
+  @belongsTo(() => Project, {
+    localKey: 'id',
+    foreignKey: 'projectId',
+  })
+  public project: BelongsTo<typeof Project>
+
+  public serializeExtras() {
+    return {
+      name: this.$extras.name,
+      cardID: this.$extras.cardID,
+      phoneNumber: this.$extras.phoneNumber,
+      role: this.$extras.role,
+    }
+  }
 }

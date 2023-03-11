@@ -1,5 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
+import Database from '@ioc:Adonis/Lucid/Database'
 import Project, { ProjectStatus } from 'App/Models/Project'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import moment from 'moment'
@@ -211,5 +212,38 @@ export default class ProjectsController {
     } catch (error) {
       return response.unprocessableEntity({ error })
     }
+  }
+
+  public async absent({ response, request }: HttpContextContract) {
+    const query = await Database.from('project_absents')
+      .select(
+        'project_workers.parent_id as parentId',
+        'emp.name',
+        'emp.role',
+        Database.raw('TO_CHAR(absent_at, \'YYYY-MM-DD\') as "absentAt"'),
+        Database.raw('count(*)::int as total'),
+        Database.raw("sum(case when absent = 'P' then 1 else 0 end)::int as present"),
+        Database.raw("sum(case when absent = 'A' then 1 else 0 end)::int as absent"),
+        Database.raw('sum(case when absent = NULL then 1 else 0 end)::int as "noAbsent"')
+      )
+      .joinRaw(
+        'INNER JOIN project_workers ON project_absents.project_id = project_workers.project_id AND project_absents.employee_id = project_workers.employee_id'
+      )
+      .joinRaw(
+        'LEFT JOIN (SELECT name, parent.role, parent.id FROM employees INNER JOIN project_workers AS parent ON employees.id = parent.employee_id) AS emp ON emp.id = project_workers.parent_id'
+      )
+      .where('project_absents.project_id', request.param('id', 0))
+      .orderBy(request.input('orderBy', 'absent_at'), request.input('order', 'asc'))
+      .groupBy('absent_at', 'project_workers.parent_id', 'emp.name', 'emp.role')
+      .andHavingRaw('EXTRACT(MONTH FROM absent_at) = :month ', {
+        month: request.input('month', moment().month() + 1),
+      })
+      .andHavingRaw('EXTRACT(YEAR FROM absent_at) = :year ', {
+        year: request.input('year', moment().year()),
+      })
+
+    return response.ok({
+      data: query,
+    })
   }
 }

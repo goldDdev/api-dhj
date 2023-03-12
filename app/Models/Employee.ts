@@ -1,6 +1,7 @@
 import { BaseModel, HasOne, column, computed, hasOne } from '@ioc:Adonis/Lucid/Orm'
 import { DateTime } from 'luxon'
 import User from './User'
+import ProjectWorker from './ProjectWorker'
 
 export enum EmployeeType {
   PM = 'PM',
@@ -67,4 +68,10 @@ export default class Employee extends BaseModel {
 
   @hasOne(() => User)
   public user: HasOne<typeof User>
+
+  @hasOne(() => ProjectWorker, {
+    localKey: 'id',
+    foreignKey: 'employeeId',
+  })
+  public work: HasOne<typeof ProjectWorker>
 }

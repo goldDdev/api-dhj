@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, BelongsTo, HasMany, belongsTo, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import Employee from './Employee'
+import Project from 'App/Models/Project'
 
 export enum ProjectWorkerStatus {
   ACTIVE = 'ACTIVE',
@@ -45,6 +46,12 @@ export default class ProjectWorker extends BaseModel {
     foreignKey: 'employeeId',
   })
   public employee: BelongsTo<typeof Employee>
+
+  @belongsTo(() => Project, {
+    localKey: 'id',
+    foreignKey: 'projectId',
+  })
+  public project: BelongsTo<typeof Project>
 
   @hasMany(() => ProjectWorker, { foreignKey: 'parentId', localKey: 'id' })
   public members: HasMany<typeof ProjectWorker>

@@ -8,7 +8,7 @@ Route.group(() => {
   Route.group(() => {
     Route.get('/', 'EmployeesController.index')
     Route.post('/', 'EmployeesController.create')
-    Route.put('/', 'EmployeesController.update')
+    Route.put('/:id/detail', 'EmployeesController.update')
     Route.put('/status', 'EmployeesController.status')
     Route.get('/:id/detail', 'EmployeesController.view')
   }).prefix('employee')

@@ -29,8 +29,10 @@ export default class EmployeesController {
 
   public async view({ auth, request, response }: HttpContextContract) {
     try {
-      console.log(auth)
-      const employee = await Employee.findOrFail(request.param('id'))
+      const employee = await Employee.query()
+        .where('id', request.param('id'))
+        .preload('user')
+        .firstOrFail()
       return response.created({ data: employee })
     } catch (error) {
       return response.notFound({ error })
@@ -103,7 +105,6 @@ export default class EmployeesController {
             }),
           ]),
           cardID: schema.string([
-            rules.minLength(8),
             rules.unique({
               table: 'employees',
               column: 'card_id',
@@ -150,7 +151,6 @@ export default class EmployeesController {
 
   public async status({ auth, request, response }: HttpContextContract) {
     try {
-      console.log(auth)
       await request.validate({
         schema: schema.create({
           id: schema.number([rules.exists({ table: 'employees', column: 'id' })]),

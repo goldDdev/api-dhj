@@ -11,10 +11,8 @@ export default class AuthController {
       const { email, password } = request.body()
       const { token } = await auth.use('api').attempt(email, password)
       return response.send({
-        data: {
-          token,
-          // user: auth.user?.serialize(),
-        },
+        token,
+        // user: auth.user?.serialize(),
       })
     } catch {
       return response.badRequest({ error: 'Invalid credentials' })
@@ -37,7 +35,7 @@ export default class AuthController {
         .where('id', auth.use('api').user!.id)
         .preload('employee')
         .firstOrFail()
-      return response.send({ ...user })
+      return response.send(user)
     } catch (error) {
       return response.unprocessableEntity({ error })
     }
@@ -87,7 +85,7 @@ export default class AuthController {
           .where('id', auth.use('api').user!.id)
           .preload('employee')
           .firstOrFail()
-        return response.send({ ...user })
+        return response.send(user)
       }
     } catch (error) {
       console.log(error)

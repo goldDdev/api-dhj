@@ -2,9 +2,10 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Project, { ProjectStatus } from 'App/Models/Project'
+import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import moment from 'moment'
-
+import Logger from '@ioc:Adonis/Core/Logger'
 export default class ProjectsController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
@@ -245,5 +246,57 @@ export default class ProjectsController {
     return response.ok({
       data: query,
     })
+  }
+
+  public async viewAbsent({ request, response }: HttpContextContract) {
+    try {
+      const model = await ProjectAbsent.query()
+        .select(
+          '*',
+          Database.raw("TO_CHAR(absent_at, 'YYYY-MM-DD') as absent_at"),
+          'employees.name',
+          'project_absents.id',
+          'employees.card_id as cardID',
+          'employees.phone_number as phoneNumber',
+          'project_workers.role',
+          'project_absents.project_id'
+        )
+        .join('employees', 'employees.id', '=', 'project_absents.employee_id')
+        .joinRaw(
+          'INNER JOIN project_workers ON employees.id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+        )
+        .preload('replaceEmployee')
+        .where('project_absents.project_id', request.param('id', 0))
+        .andWhere('project_workers.parent_id', request.param('parent', 0))
+        .andWhere('absent_at', request.input('date', moment().format('yyyy-MM-DD')))
+
+      const summary = model.reduce(
+        (p, n) => ({
+          present: p.present + Number(n.absent === AbsentType.P),
+          absent: p.absent + Number(n.absent === AbsentType.A),
+          noAbsent: p.noAbsent + Number(!n.absent),
+        }),
+        { present: 0, absent: 0, noAbsent: 0 }
+      )
+      summary['total'] = model.length
+
+      return response.ok({
+        data: {
+          absentAt: request.input('date', moment().format('yyyy-MM-DD')),
+          projectId: +request.param('project', 0),
+          parentId: +request.param('parent', 0),
+          summary,
+          members: model.map((v) =>
+            v.serialize({
+              fields: {
+                omit: ['created_at', 'updated_at', 'latitude', 'longitude'],
+              },
+            })
+          ),
+        },
+      })
+    } catch (err) {
+      Logger.warn(err)
+    }
   }
 }

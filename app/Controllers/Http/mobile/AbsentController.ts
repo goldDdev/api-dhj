@@ -52,6 +52,8 @@ export default class ProjectsController {
     const model = await ProjectAbsent.query()
       .select(
         '*',
+        'employees.name',
+        Database.raw("TO_CHAR(absent_at, 'YYYY-MM-DD') as absent_at"),
         'project_absents.id',
         'employees.card_id as cardID',
         'employees.phone_number as phoneNumber',

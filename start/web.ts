@@ -19,6 +19,7 @@ Route.group(() => {
     Route.put('/', 'ProjectsController.update')
     Route.put('/status', 'ProjectsController.status')
     Route.post('/worker', 'ProjectsController.addWorker')
+    Route.get('/:id/:parent/absent', 'ProjectsController.viewAbsent')
     Route.get('/:id/absent', 'ProjectsController.absent')
     Route.get('/:id/detail', 'ProjectsController.view')
     Route.get('/:id/worker', 'ProjectsController.listWorker')

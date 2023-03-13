@@ -64,7 +64,6 @@ export default class AuthController {
               table: 'users',
               column: 'email',
               whereNot: {
-                email: null,
                 id: currentUser.employee.id,
               },
             }),

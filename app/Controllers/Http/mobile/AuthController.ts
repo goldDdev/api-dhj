@@ -55,6 +55,7 @@ export default class AuthController {
               table: 'employees',
               column: 'phone_number',
               whereNot: {
+                phone_number: null,
                 id: currentUser.employee.id,
               },
             }),
@@ -64,7 +65,8 @@ export default class AuthController {
               table: 'users',
               column: 'email',
               whereNot: {
-                id: currentUser.employee.id,
+                email: null,
+                id: currentUser.id,
               },
             }),
           ]),

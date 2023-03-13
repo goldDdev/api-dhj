@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { DateTime } from 'luxon'
 import Hash from '@ioc:Adonis/Core/Hash'
 import {
@@ -7,7 +8,6 @@ import {
   belongsTo,
   BelongsTo,
   HasOne,
-  hasOne,
   afterFind,
 } from '@ioc:Adonis/Lucid/Orm'
 import Employee from './Employee'

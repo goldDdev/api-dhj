@@ -22,7 +22,7 @@ export default class AuthController {
   public async logout({ auth, request, response }: HttpContextContract) {
     try {
       await auth.use('api').revoke()
-      return response.send(204)
+      return response.status(204)
     } catch {
       return response.badRequest({ error: 'Invalid credentials' })
     }
@@ -55,7 +55,7 @@ export default class AuthController {
               table: 'employees',
               column: 'phone_number',
               whereNot: {
-                id: currentUser.id,
+                id: currentUser.employee.id,
               },
             }),
           ]),
@@ -65,7 +65,7 @@ export default class AuthController {
               column: 'email',
               whereNot: {
                 email: null,
-                id: currentUser.id,
+                id: currentUser.employee.id,
               },
             }),
           ]),
@@ -98,7 +98,6 @@ export default class AuthController {
     try {
       await auth.use('api').authenticate()
       const currentUser = auth.use('api').user!
-      console.log('cel')
       await request.validate({
         schema: schema.create({
           password: schema.string([rules.minLength(3)]),

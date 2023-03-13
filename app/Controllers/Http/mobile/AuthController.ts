@@ -37,7 +37,7 @@ export default class AuthController {
         .where('id', auth.use('api').user!.id)
         .preload('employee')
         .firstOrFail()
-      return response.send({ user })
+      return response.send({ ...user })
     } catch (error) {
       return response.unprocessableEntity({ error })
     }
@@ -83,7 +83,11 @@ export default class AuthController {
           await model.user.merge({ email }).save()
         }
         await trx.commit()
-        return response.status(204)
+        const user = await User.query()
+          .where('id', auth.use('api').user!.id)
+          .preload('employee')
+          .firstOrFail()
+        return response.send({ ...user })
       }
     } catch (error) {
       console.log(error)

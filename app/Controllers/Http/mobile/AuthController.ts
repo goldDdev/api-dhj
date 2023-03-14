@@ -3,7 +3,7 @@ import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Employee from 'App/Models/Employee'
 import User from 'App/Models/User'
-import codeError from 'config/codeError'
+import codeError from '../../../../config/codeError'
 export default class AuthController {
   public async login({ auth, request, response }: HttpContextContract) {
     try {

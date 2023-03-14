@@ -3,21 +3,37 @@ import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Employee from 'App/Models/Employee'
 import User from 'App/Models/User'
-import codeError from 'Config/codeError'
-import Logger from '@ioc:Adonis/Core/Logger'
+import codeError from 'config/codeError'
 export default class AuthController {
   public async login({ auth, request, response }: HttpContextContract) {
     try {
       const { email, password } = request.body()
       const { token } = await auth.use('api').attempt(email, password)
+      const model = await User.findOrFail(auth.user?.id)
+      await model.load('employee', (query) => query.preload('work'))
+
       return response.send({
         data: {
           token,
-          // user: auth.user?.serialize(),
+          id: model.id,
+          employeeId: model.employeeId,
+          email: model.email,
+          ...model.employee.serialize({
+            fields: {
+              omit: ['id'],
+            },
+            relations: {
+              work: {
+                fields: {
+                  omit: ['parentId', 'employeeId'],
+                },
+              },
+            },
+          }),
         },
       })
     } catch {
-      return response.badRequest({ error: 'Invalid credentials' })
+      return response.unprocessableEntity({ code: codeError.entity, type: 'validation' })
     }
   }
 

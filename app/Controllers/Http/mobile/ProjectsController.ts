@@ -3,7 +3,6 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import Project from 'App/Models/Project'
 import codeError from 'Config/codeError'
 import moment from 'moment'
-import Logger from '@ioc:Adonis/Core/Logger'
 
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
@@ -63,7 +62,7 @@ export default class ProjectsController {
     }
   }
 
-  public async absent({ auth, response, request }: HttpContextContract) {
+  public async absent({ response, request }: HttpContextContract) {
     const query = await Database.from('project_absents')
       .select(
         'project_workers.parent_id as parentId',

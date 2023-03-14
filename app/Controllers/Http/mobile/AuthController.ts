@@ -1,29 +1,47 @@
-// @ts-nocheck
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import codeError from 'Config/codeError'
 import Employee from 'App/Models/Employee'
 import User from 'App/Models/User'
-
+import codeError from '../../../../config/codeError'
 export default class AuthController {
   public async login({ auth, request, response }: HttpContextContract) {
     try {
       const { email, password } = request.body()
       const { token } = await auth.use('api').attempt(email, password)
+      const model = await User.findOrFail(auth.user?.id)
+      await model.load('employee', (query) => query.preload('work'))
+
       return response.send({
-        token,
-        // user: auth.user?.serialize(),
+        data: {
+          token,
+          id: model.id,
+          employeeId: model.employeeId,
+          email: model.email,
+          ...model.employee.serialize({
+            fields: {
+              omit: ['id'],
+            },
+            relations: {
+              work: {
+                fields: {
+                  omit: ['parentId', 'employeeId'],
+                },
+              },
+            },
+          }),
+        },
       })
     } catch {
-      return response.badRequest({ error: 'Invalid credentials' })
+      return response.unprocessableEntity({ code: codeError.entity, type: 'validation' })
     }
   }
 
-  public async logout({ auth, request, response }: HttpContextContract) {
+  public async logout({ auth, response }: HttpContextContract) {
     try {
       await auth.use('api').revoke()
-      return response.status(204)
+      return response.send(204)
     } catch {
       return response.badRequest({
         code: codeError.unauthorization,
@@ -32,16 +50,30 @@ export default class AuthController {
     }
   }
 
-  public async current({ auth, request, response }: HttpContextContract) {
+  public async current({ auth, response }: HttpContextContract) {
     try {
       await auth.use('api').authenticate()
-      const user = await User.query()
-        .where('id', auth.use('api').user!.id)
-        .preload('employee')
-        .firstOrFail()
-      return response.send(user)
+      const model = await User.findOrFail(auth.user?.id)
+      await model.load('employee', (query) => query.preload('work'))
+      return response.send({
+        id: model.id,
+        employeeId: model.employeeId,
+        email: model.email,
+        ...model.employee.serialize({
+          fields: {
+            omit: ['id'],
+          },
+          relations: {
+            work: {
+              fields: {
+                omit: ['parentId', 'employeeId'],
+              },
+            },
+          },
+        }),
+      })
     } catch (error) {
-      return response.unprocessableEntity({ error })
+      return response.notFound({ code: codeError.notFound, type: 'notFound' })
     }
   }
 
@@ -59,8 +91,7 @@ export default class AuthController {
               table: 'employees',
               column: 'phone_number',
               whereNot: {
-                phone_number: null,
-                id: currentUser.employee.id,
+                id: currentUser.id,
               },
             }),
           ]),
@@ -86,14 +117,9 @@ export default class AuthController {
           await model.user.merge({ email }).save()
         }
         await trx.commit()
-        const user = await User.query()
-          .where('id', auth.use('api').user!.id)
-          .preload('employee')
-          .firstOrFail()
-        return response.send(user)
+        return response.status(204)
       }
     } catch (error) {
-      console.log(error)
       await trx.rollback()
       return response.unprocessableEntity({ error })
     }
@@ -103,6 +129,7 @@ export default class AuthController {
     try {
       await auth.use('api').authenticate()
       const currentUser = auth.use('api').user!
+      console.log('cel')
       await request.validate({
         schema: schema.create({
           password: schema.string([rules.minLength(3)]),

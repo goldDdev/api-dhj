@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { BaseModel, HasMany, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, HasMany, column, computed, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import ProjectWorker from './ProjectWorker'
 import ProjectAbsent from './ProjectAbsent'
 
@@ -62,6 +62,11 @@ export default class Project extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
+
+  @computed()
+  public get totalWorkers() {
+    return this.workers?.length
+  }
 
   @hasMany(() => ProjectWorker, { foreignKey: 'projectId', localKey: 'id' })
   public workers: HasMany<typeof ProjectWorker>

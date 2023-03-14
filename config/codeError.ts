@@ -5,4 +5,5 @@ export default {
   forbidden: 43,
   notFound: 44,
   entity: 45,
+  errors: 50,
 }

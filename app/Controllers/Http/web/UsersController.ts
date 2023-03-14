@@ -7,6 +7,7 @@ export default class UsersController {
     return response.send(
       await User.query()
         .select(['id', 'email'])
+        .preload('employee')
         .if(request.input('email'), (query) =>
           query.whereILike('email', `%${request.input('email')}%`)
         )

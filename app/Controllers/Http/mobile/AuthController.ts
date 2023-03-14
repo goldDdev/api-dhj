@@ -2,6 +2,7 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
+import codeError from 'Config/codeError'
 import Employee from 'App/Models/Employee'
 import User from 'App/Models/User'
 
@@ -24,7 +25,10 @@ export default class AuthController {
       await auth.use('api').revoke()
       return response.status(204)
     } catch {
-      return response.badRequest({ error: 'Invalid credentials' })
+      return response.badRequest({
+        code: codeError.unauthorization,
+        error: 'Invalid credentials',
+      })
     }
   }
 

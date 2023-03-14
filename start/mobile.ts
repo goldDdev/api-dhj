@@ -17,6 +17,13 @@ Route.group(() => {
       Route.get('/generate', 'AbsentController.create')
       Route.get('/', 'AbsentController.index')
     }).prefix('absent')
+
+    Route.group(() => {
+      Route.get('/', 'ProjectsController.index')
+      Route.get('/absent', 'ProjectsController.index')
+      Route.get('/detail', 'ProjectsController.view')
+      Route.get('/:id', 'ProjectsController.view')
+    }).prefix('project')
   }).middleware(['auth'])
 })
   .namespace('App/Controllers/Http/mobile')

@@ -42,9 +42,7 @@ export default class ProjectsController {
         query.andHaving('project_absents.project_id', '=', request.input('projectId'))
       })
 
-    return response.ok({
-      data: query,
-    })
+    return response.ok(query)
   }
 
   public async current({ auth, response }: HttpContextContract) {
@@ -80,17 +78,15 @@ export default class ProjectsController {
     summary['total'] = model.length
 
     return response.ok({
-      data: {
-        absentAt: currentDate,
-        summary,
-        members: model.map((v) =>
-          v.serialize({
-            fields: {
-              omit: ['created_at', 'updated_at', 'latitude', 'longitude'],
-            },
-          })
-        ),
-      },
+      absentAt: currentDate,
+      summary,
+      members: model.map((v) =>
+        v.serialize({
+          fields: {
+            omit: ['created_at', 'updated_at', 'latitude', 'longitude'],
+          },
+        })
+      ),
     })
   }
 
@@ -129,9 +125,7 @@ export default class ProjectsController {
 
         const absents = await ProjectAbsent.createMany(data, { client: trx })
         await trx.commit()
-        return response.created({
-          data: absents,
-        })
+        return response.created(absents)
       }
       await trx.rollback()
     } catch (error) {
@@ -166,7 +160,7 @@ export default class ProjectsController {
       if (model) {
         await model.merge({ absentBy: auth.user?.employeeId, ...body }).save()
       }
-      return response.ok({ data: payload })
+      return response.ok(payload)
     } catch (error) {
       Logger.info(error)
       return response.unprocessableEntity({ error })
@@ -187,7 +181,7 @@ export default class ProjectsController {
       if (model) {
         await model.merge({ closeAt }).save()
       }
-      return response.ok({ data: payload })
+      return response.ok(payload)
     } catch (error) {
       Logger.info(error)
       return response.unprocessableEntity({ error })

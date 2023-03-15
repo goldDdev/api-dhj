@@ -63,14 +63,15 @@ export default class Project extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
 
-  @computed()
-  public get totalWorkers() {
-    return this.workers?.length
-  }
-
   @hasMany(() => ProjectWorker, { foreignKey: 'projectId', localKey: 'id' })
   public workers: HasMany<typeof ProjectWorker>
 
   @hasMany(() => ProjectAbsent, { foreignKey: 'projectId', localKey: 'id' })
   public absents: HasMany<typeof ProjectAbsent>
+
+  public serializeExtras() {
+    return {
+      totalWorker: this.$extras.totalWoker,
+    }
+  }
 }

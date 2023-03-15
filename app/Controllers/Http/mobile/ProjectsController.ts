@@ -15,7 +15,10 @@ export default class ProjectsController {
         'finishAt',
         'startAt',
         'location',
-        'contact'
+        'contact',
+        Database.raw(
+          '(SELECT COUNT(*) FROM project_workers a1 WHERE a1.project_id = projects.id AND a1.parent_id = project_workers.id)::int AS "totalWoker"'
+        )
       )
       .leftJoin('project_workers', 'project_workers.project_id', 'projects.id')
       .where('project_workers.employee_id', auth.user!.employeeId)
@@ -53,6 +56,8 @@ export default class ProjectsController {
         .andWhere('project_workers.employee_id', auth.user!.employeeId)
         .orderBy('projects.id', 'asc')
         .firstOrFail()
+
+      model.$extras.totalWoker = model.workers.length
       return response.ok(
         model.serialize({
           relations: {

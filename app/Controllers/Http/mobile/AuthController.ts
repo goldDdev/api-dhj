@@ -13,24 +13,7 @@ export default class AuthController {
       await model.load('employee', (query) => query.preload('work'))
 
       return response.send({
-        data: {
-          token,
-          id: model.id,
-          employeeId: model.employeeId,
-          email: model.email,
-          ...model.employee.serialize({
-            fields: {
-              omit: ['id'],
-            },
-            relations: {
-              work: {
-                fields: {
-                  omit: ['parentId', 'employeeId'],
-                },
-              },
-            },
-          }),
-        },
+        token,
       })
     } catch {
       return response.unprocessableEntity({ code: codeError.entity, type: 'validation' })

@@ -8,6 +8,7 @@ export default class EmployeesController {
     return response.send(
       await Employee.query()
         .select(['id', 'name', 'phoneNumber', 'role', 'card_id', 'inactive_at'])
+        .preload('user')
         .if(request.input('name'), (query) =>
           query
             .whereILike('name', `%${request.input('name')}%`)
@@ -22,6 +23,7 @@ export default class EmployeesController {
             query.whereNotNull('inactive_at')
           }
         })
+        .where('role', 'NOT IN', ['ADMIN', 'OWNER'])
         .orderBy('id', 'desc')
         .paginate(request.input('page', 1), request.input('perPage', 15))
     )

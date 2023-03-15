@@ -23,7 +23,6 @@ export default class ProjectsController {
         data: model.serialize(),
       })
     } catch (error) {
-      console.log(error)
       return response.notFound({ error })
     }
   }

@@ -1,5 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import * as vld from '@ioc:Adonis/Core/Validator'
+import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import User from 'App/Models/User'
 
 export default class UsersController {
@@ -15,13 +15,12 @@ export default class UsersController {
     )
   }
 
-  public async store({ auth, request, response }: HttpContextContract) {
+  public async store({ request, response }: HttpContextContract) {
     try {
-      console.log(auth)
       await request.validate({
-        schema: vld.schema.create({
-          email: vld.schema.string([vld.rules.minLength(3)]),
-          password: vld.schema.string([vld.rules.minLength(3)]),
+        schema: schema.create({
+          email: schema.string([rules.minLength(3)]),
+          password: schema.string([rules.minLength(3)]),
         }),
       })
 
@@ -36,9 +35,8 @@ export default class UsersController {
     }
   }
 
-  public async show({ auth, request, response }: HttpContextContract) {
+  public async show({ request, response }: HttpContextContract) {
     try {
-      console.log(auth)
       const user = await User.findOrFail(request.param('id'))
       return response.created({ data: user })
     } catch (error) {
@@ -46,13 +44,12 @@ export default class UsersController {
     }
   }
 
-  public async update({ auth, request, response }: HttpContextContract) {
+  public async update({ request, response }: HttpContextContract) {
     try {
-      console.log(auth)
       await request.validate({
-        schema: vld.schema.create({
-          email: vld.schema.string([vld.rules.minLength(3)]),
-          password: vld.schema.string([vld.rules.minLength(3)]),
+        schema: schema.create({
+          email: schema.string([rules.minLength(3)]),
+          password: schema.string([rules.minLength(3)]),
         }),
       })
 
@@ -67,9 +64,8 @@ export default class UsersController {
     }
   }
 
-  public async destroy({ auth, request, response }: HttpContextContract) {
+  public async destroy({ request, response }: HttpContextContract) {
     try {
-      console.log(auth)
       const user = await User.findOrFail(request.param('id'))
       await user.delete()
       return response.send(200)

@@ -42,7 +42,7 @@ export default class Project extends BaseModel {
   @column({ columnName: 'price', serializeAs: 'price', consume: (value) => +value })
   public price: number
 
-  @column({ columnName: 'location', serializeAs: 'location' })
+  @column()
   public location: string
 
   @column({ columnName: 'latitude', serializeAs: 'latitude' })

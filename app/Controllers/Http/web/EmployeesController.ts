@@ -7,7 +7,16 @@ export default class EmployeesController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
       await Employee.query()
-        .select(['id', 'name', 'phoneNumber', 'role', 'card_id', 'inactive_at'])
+        .select([
+          'employees.id',
+          'name',
+          'phoneNumber',
+          'role',
+          'card_id',
+          'inactive_at',
+          'users.email',
+        ])
+        .leftJoin('users', 'users.employee_id', 'employees.id')
         .if(request.input('name'), (query) =>
           query
             .whereILike('name', `%${request.input('name')}%`)

@@ -74,4 +74,10 @@ export default class Employee extends BaseModel {
     foreignKey: 'employeeId',
   })
   public work: HasOne<typeof ProjectWorker>
+
+  public serializeExtras() {
+    return {
+      email: this.$extras.email,
+    }
+  }
 }

@@ -7,13 +7,25 @@ import moment from 'moment'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
-      .select('projects.id', 'name', 'companyName', 'projects.status', 'finishAt', 'startAt')
+      .select(
+        'projects.id',
+        'name',
+        'companyName',
+        'projects.status',
+        'finishAt',
+        'startAt',
+        'location',
+        'contact'
+      )
       .leftJoin('project_workers', 'project_workers.project_id', 'projects.id')
       .where('project_workers.employee_id', auth.user!.employeeId)
+      .andWhereNotIn('projects.status', ['DRAFT', 'CANCELLED', 'PENDING', 'REVIEW'])
       .if(request.input('name'), (query) =>
         query.whereILike('projects.name', `%${request.input('name')}%`)
       )
-      .if(request.input('status'), (query) => query.where('status', request.input('status')))
+      .if(request.input('status'), (query) =>
+        query.andWhere('projects.status', request.input('status'))
+      )
       .orderBy(request.input('orderBy', 'id'), request.input('groupBy', 'desc'))
       .paginate(request.input('page', 1), request.input('perPage', 15))
     return response.send(query.serialize().data)

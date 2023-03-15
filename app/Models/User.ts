@@ -58,4 +58,19 @@ export default class User extends BaseModel {
       })
     })
   }
+
+  // public serializeExtras() {
+  //   return {
+  //     cardID: this.$extras.card_id,
+  //     hourlyWages: this.$extras.hourly_wages,
+  //     inactiveAt: this.$extras.inactive_at,
+  //     invoiceNote: this.$extras.inactive_note,
+  //     name: this.$extras.name,
+  //     phoneNumber: this.$extras.phone_number,
+  //     role: this.$extras.role,
+  //     salary: this.$extras.salary,
+  //     status: this.$extras.status,
+  //     updatedAt: this.$extras.updated_at,
+  //   }
+  // }
 }

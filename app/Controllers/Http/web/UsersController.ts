@@ -7,8 +7,16 @@ export default class UsersController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
       await Employee.query()
-        .select(['id', 'name', 'phoneNumber', 'role', 'card_id', 'inactive_at'])
-        .preload('user')
+        .select([
+          'employees.id',
+          'name',
+          'phoneNumber',
+          'role',
+          'card_id',
+          'inactive_at',
+          'users.email',
+        ])
+        .leftJoin('users', 'users.employee_id', 'employees.id')
         .if(request.input('name'), (query) =>
           query
             .whereILike('name', `%${request.input('name')}%`)
@@ -51,8 +59,20 @@ export default class UsersController {
 
   public async show({ request, response }: HttpContextContract) {
     try {
-      const user = await User.query().where('employee_id', request.param('id')).firstOrFail()
-      return response.created({ data: user })
+      const user = await User.findByOrFail('employee_id', request.param('id'))
+      const { employee, id, employeeId, email } = user
+      return response.created({
+        data: {
+          id,
+          employeeId,
+          email,
+          ...employee.serialize({
+            fields: {
+              omit: ['id'],
+            },
+          }),
+        },
+      })
     } catch (error) {
       return response.notFound({ error })
     }
@@ -63,7 +83,7 @@ export default class UsersController {
       await request.validate({
         schema: schema.create({
           email: schema.string([rules.minLength(3)]),
-          password: schema.string([rules.minLength(3)]),
+          password: schema.string.optional([rules.minLength(3)]),
         }),
       })
 

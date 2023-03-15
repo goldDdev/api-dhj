@@ -1,9 +1,9 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
+import codeError from 'Config/codeError'
 import Employee from 'App/Models/Employee'
 import User from 'App/Models/User'
-import codeError from '../../../../config/codeError'
 export default class AuthController {
   public async login({ auth, request, response }: HttpContextContract) {
     try {
@@ -40,7 +40,10 @@ export default class AuthController {
       await auth.use('api').revoke()
       return response.send(204)
     } catch {
-      return response.badRequest({ error: 'Invalid credentials' })
+      return response.badRequest({
+        code: codeError.unauthorization,
+        error: 'Invalid credentials',
+      })
     }
   }
 
@@ -131,11 +134,28 @@ export default class AuthController {
       })
 
       const user = await User.findOrFail(currentUser.id)
-      // TODO : current password validation
-      const { currentPassword, password } = request.body()
+      const { password } = request.body()
       await user.merge({ password }).save()
       // TODO : send to user.email
       return response.status(204)
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  // @ts-ignore
+  public async forgotPassword({ auth, request, response }: HttpContextContract) {
+    try {
+      // TODO : send email with code
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  // @ts-ignore
+  public async resetPassword({ auth, request, response }: HttpContextContract) {
+    try {
+      // TODO : verifiy email & code user -> reset with new password
     } catch (error) {
       return response.unprocessableEntity({ error })
     }

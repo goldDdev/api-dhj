@@ -31,6 +31,7 @@ export default class EmployeesController {
             query.whereNotNull('inactive_at')
           }
         })
+        .where('role', 'NOT IN', ['ADMIN', 'OWNER'])
         .orderBy('id', 'desc')
         .paginate(request.input('page', 1), request.input('perPage', 15))
     )

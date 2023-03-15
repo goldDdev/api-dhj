@@ -4,6 +4,8 @@ import User from './User'
 import ProjectWorker from './ProjectWorker'
 
 export enum EmployeeType {
+  OWNER = 'OWNER',
+  ADMIN = 'ADMIN',
   PM = 'PM',
   PCC = 'PCC',
   PC = 'PC',

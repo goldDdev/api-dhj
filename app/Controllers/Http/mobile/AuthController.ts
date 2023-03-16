@@ -52,22 +52,33 @@ export default class AuthController {
       await auth.use('api').authenticate()
       const model = await User.findOrFail(auth.user?.id)
       await model.load('employee', (query) => query.preload('work'))
+
+      const employee = model.employee.serialize()
       return response.send({
         id: model.id,
-        employeeId: model.employeeId,
         email: model.email,
-        ...model.employee.serialize({
-          fields: {
-            omit: ['id'],
-          },
-          relations: {
-            work: {
-              fields: {
-                omit: ['parentId', 'employeeId'],
-              },
-            },
-          },
-        }),
+        employeeId: model.employeeId,
+        employee: {
+          id: employee.id,
+          name: employee.name,
+          role: employee.role,
+          phoneNumber: employee.phoneNumber,
+          cardID: employee.cardID,
+        },
+        // NOTE : skip first
+        // employeeId: model.employeeId,
+        // ...model.employee.serialize({
+        //   fields: {
+        //     omit: ['id'],
+        //   },
+        //   relations: {
+        //     work: {
+        //       fields: {
+        //         omit: ['parentId', 'employeeId'],
+        //       },
+        //     },
+        //   },
+        // }),
       })
     } catch (error) {
       return response.notFound({ code: codeError.notFound, type: 'notFound' })

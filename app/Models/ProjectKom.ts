@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
 import Project from './Project'
+import moment from 'moment'
 
 export enum KomStatus {
   PLAN = 'PLAN',
@@ -17,7 +18,11 @@ export default class ProjectKom extends BaseModel {
   @column({ columnName: 'project_id', serializeAs: 'projectId' })
   public projectId: number
 
-  @column({ columnName: 'date_plan', serializeAs: 'datePlan' })
+  @column({
+    columnName: 'date_plan',
+    serializeAs: 'datePlan',
+    consume: (value) => moment(value).format('yyyy-MM-DD'),
+  })
   public datePlan: string
 
   @column({ columnName: 'time_plan', serializeAs: 'timePlan' })

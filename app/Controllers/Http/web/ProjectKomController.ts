@@ -32,6 +32,7 @@ export default class ProjectsController {
           datePlan: schema.string(),
           timePlan: schema.string.optional(),
           description: schema.string.optional(),
+          status: schema.string.optional(),
         }),
       })
 
@@ -55,10 +56,11 @@ export default class ProjectsController {
           title: schema.string(),
           datePlan: schema.string(),
           timePlan: schema.string.optional(),
-          actualPlan: schema.string.optional(),
+          actualDate: schema.string.optional(),
           actualTime: schema.string.optional(),
           description: schema.string.optional(),
           result: schema.string.optional(),
+          status: schema.string.optional(),
         }),
       })
 

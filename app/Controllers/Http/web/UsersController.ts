@@ -2,6 +2,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import User from 'App/Models/User'
 import Employee from 'App/Models/Employee'
+import Database from '@ioc:Adonis/Lucid/Database'
 
 export default class UsersController {
   public async index({ response, request }: HttpContextContract) {
@@ -38,62 +39,101 @@ export default class UsersController {
   }
 
   public async store({ request, response }: HttpContextContract) {
+    const trx = await Database.transaction()
     try {
-      await request.validate({
+      const payload = await request.validate({
         schema: schema.create({
-          email: schema.string([rules.minLength(3)]),
-          password: schema.string([rules.minLength(3)]),
+          name: schema.string([rules.minLength(3)]),
+          phoneNumber: schema.string([
+            rules.minLength(10),
+            rules.unique({
+              table: 'employees',
+              column: 'phone_number',
+            }),
+          ]),
+          role: schema.string(),
+          email: schema.string.optional([
+            rules.unique({
+              table: 'users',
+              column: 'email',
+              whereNot: {
+                email: null,
+              },
+            }),
+          ]),
         }),
       })
 
-      const { email, password } = request.body()
-      const user = await User.create({
-        email,
-        password,
-      })
-      return response.created({ data: user })
+      const { email, ...emp } = payload
+      const model = await Employee.create(emp, { client: trx })
+      await model.related('user').create({ email, password: model.phoneNumber })
+      await trx.commit()
+      return response.created({ data: { ...model.serialize(), email } })
     } catch (error) {
+      await trx.rollback()
       return response.unprocessableEntity({ error })
     }
   }
 
   public async show({ request, response }: HttpContextContract) {
     try {
-      const user = await User.findByOrFail('employee_id', request.param('id'))
-      const { employee, id, employeeId, email } = user
-      return response.created({
-        data: {
-          id,
-          employeeId,
-          email,
-          ...employee.serialize({
-            fields: {
-              omit: ['id'],
-            },
-          }),
-        },
-      })
+      const userEmployee = await Employee.query()
+        .where('id', request.param('id'))
+        .preload('user')
+        .firstOrFail()
+      return response.created({ data: userEmployee })
     } catch (error) {
       return response.notFound({ error })
     }
   }
 
   public async update({ request, response }: HttpContextContract) {
+    const trx = await Database.transaction()
     try {
-      await request.validate({
+      const payload = await request.validate({
         schema: schema.create({
-          email: schema.string([rules.minLength(3)]),
-          password: schema.string.optional([rules.minLength(3)]),
+          id: schema.number(),
+          name: schema.string([rules.minLength(3)]),
+          phoneNumber: schema.string([
+            rules.minLength(10),
+            rules.unique({
+              table: 'employees',
+              column: 'phone_number',
+              whereNot: {
+                id: request.input('id'),
+              },
+            }),
+          ]),
+          role: schema.string(),
+          email: schema.string.optional([
+            rules.unique({
+              table: 'users',
+              column: 'email',
+              whereNot: {
+                email: null,
+                employee_id: request.input('id'),
+              },
+            }),
+          ]),
         }),
       })
 
-      const user = await User.find(request.input('id'))
-      if (user) {
-        const { email, password } = request.body()
-        await user.merge({ email, password }).save()
+      const { email, ...emp } = payload
+      const model = await Employee.find(request.input('id'), { client: trx })
+      if (model) {
+        const current = model
+        await model.load('user')
+        await model.merge(emp).save()
+        if (email) {
+          await model.user.merge({ email }).save()
+        }
+        await trx.commit()
+        return response
+          .status(200)
+          .json({ data: { ...current.serialize(), email: model.user.email } })
       }
-      return response.status(200).json({ data: user })
     } catch (error) {
+      await trx.rollback()
       return response.unprocessableEntity({ error })
     }
   }
@@ -105,6 +145,27 @@ export default class UsersController {
       return response.send(200)
     } catch (error) {
       return response.notFound({ error })
+    }
+  }
+
+  public async status({ request, response }: HttpContextContract) {
+    try {
+      await request.validate({
+        schema: schema.create({
+          id: schema.number([rules.exists({ table: 'employees', column: 'id' })]),
+          inactiveNote: schema.string.nullable(),
+        }),
+      })
+
+      const employee = await Employee.find(request.input('id'))
+      if (employee) {
+        // employee.inactiveAt = employee.inactiveAt ? null : moment().format()
+        employee.inactiveNote = request.input('inactiveNote')
+        await employee.save()
+      }
+      return response.status(200).json({ data: employee })
+    } catch (error) {
+      return response.unprocessableEntity({ error })
     }
   }
 }

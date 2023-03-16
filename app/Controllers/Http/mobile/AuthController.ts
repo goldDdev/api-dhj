@@ -38,7 +38,7 @@ export default class AuthController {
   public async logout({ auth, response }: HttpContextContract) {
     try {
       await auth.use('api').revoke()
-      return response.send(204)
+      return response.status(204)
     } catch {
       return response.badRequest({
         code: codeError.unauthorization,

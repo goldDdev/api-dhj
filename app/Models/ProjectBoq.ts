@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, afterFind, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
 import Project from './Project'
 import Boq from './Boq'
 
@@ -21,19 +21,23 @@ export default class ProjectBoq extends BaseModel {
   @column()
   public unit: number
 
-  @column()
+  @column({ consume: (value) => +value })
   public price: number
 
   @column({ columnName: 'additional_unit', serializeAs: 'additionalUnit' })
   public additionalUnit: number
 
-  @column({ columnName: 'additional_price', serializeAs: 'additionalPrice' })
+  @column({
+    columnName: 'additional_price',
+    serializeAs: 'additionalPrice',
+    consume: (value) => +value,
+  })
   public additionalPrice: number
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true, serializeAs: null })
+  @column.dateTime({ autoCreate: true, autoUpdate: true, serializeAs: 'updatedAt' })
   public updatedAt: DateTime
 
   @belongsTo(() => Project, {
@@ -47,4 +51,16 @@ export default class ProjectBoq extends BaseModel {
     foreignKey: 'boqId',
   })
   public boq: BelongsTo<typeof Boq>
+
+  public serializeExtras() {
+    return {
+      name: this.$extras.name,
+    }
+  }
+
+  @afterFind()
+  public static async afterFindHook(model: ProjectBoq) {
+    await model.load('boq')
+    model.$extras.name = model.boq.name
+  }
 }

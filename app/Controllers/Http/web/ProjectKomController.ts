@@ -2,7 +2,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema } from '@ioc:Adonis/Core/Validator'
 import ProjectKom, { KomStatus } from 'App/Models/ProjectKom'
 
-export default class ProjectsController {
+export default class ProjectKomController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
       await ProjectKom.query()

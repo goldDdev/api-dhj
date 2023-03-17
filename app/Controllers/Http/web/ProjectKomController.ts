@@ -6,7 +6,12 @@ export default class ProjectsController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
       await ProjectKom.query()
-        .orderBy('id', 'desc')
+        .where('project_id', request.input('projectId'))
+        .if(request.input('status'), (query) => query.andWhere('status', request.input('status')))
+        .if(request.input('title'), (query) =>
+          query.andWhereILike('title', `%${request.input('title')}%`)
+        )
+        .orderBy(request.input('orderBy', 'id'), request.input('order', 'desc'))
         .paginate(request.input('page', 1), request.input('perPage', 15))
     )
   }
@@ -18,7 +23,6 @@ export default class ProjectsController {
         data: model.serialize(),
       })
     } catch (error) {
-      console.log(error)
       return response.notFound({ error })
     }
   }

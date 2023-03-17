@@ -17,9 +17,8 @@ export default class BoqsController {
     )
   }
 
-  public async store({ auth, request, response }: HttpContextContract) {
+  public async store({ request, response }: HttpContextContract) {
     try {
-      console.log(auth)
       await request.validate({
         schema: vld.schema.create({
           name: vld.schema.string([vld.rules.minLength(3)]),
@@ -38,9 +37,8 @@ export default class BoqsController {
     }
   }
 
-  public async show({ auth, request, response }: HttpContextContract) {
+  public async show({ request, response }: HttpContextContract) {
     try {
-      console.log(auth)
       const boq = await Boq.findOrFail(request.param('id'))
       return response.created({ data: boq })
     } catch (error) {
@@ -48,9 +46,8 @@ export default class BoqsController {
     }
   }
 
-  public async update({ auth, request, response }: HttpContextContract) {
+  public async update({ request, response }: HttpContextContract) {
     try {
-      console.log(auth)
       await request.validate({
         schema: vld.schema.create({
           name: vld.schema.string([vld.rules.minLength(3)]),
@@ -69,9 +66,8 @@ export default class BoqsController {
     }
   }
 
-  public async destroy({ auth, request, response }: HttpContextContract) {
+  public async destroy({ request, response }: HttpContextContract) {
     try {
-      console.log(auth)
       const boq = await Boq.findOrFail(request.param('id'))
       await boq.delete()
       return response.send(200)

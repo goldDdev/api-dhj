@@ -164,14 +164,14 @@ export default class EmployeesController {
       await request.validate({
         schema: schema.create({
           id: schema.number([rules.exists({ table: 'employees', column: 'id' })]),
-          invoiceNote: schema.string.nullable(),
+          inactiveNote: schema.string.nullable(),
         }),
       })
 
       const employee = await Employee.find(request.input('id'))
       if (employee) {
         // employee.inactiveAt = employee.inactiveAt ? null : moment().format()
-        employee.inactiveNote = request.input('invoiceNote')
+        employee.inactiveNote = request.input('inactiveNote')
         await employee.save()
       }
       return response.status(200).json({ data: employee })

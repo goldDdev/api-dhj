@@ -125,7 +125,19 @@ export default class AuthController {
           await model.user.merge({ email }).save()
         }
         await trx.commit()
-        return response.status(204)
+        const user = model.user.serialize()
+        return response.send({
+          id: user.id,
+          email: user.email,
+          employeeId: user.employeeId,
+          employee: {
+            id: model.id,
+            name: model.name,
+            role: model.role,
+            phoneNumber: model.phoneNumber,
+            cardID: model.cardID,
+          },
+        })
       }
     } catch (error) {
       await trx.rollback()

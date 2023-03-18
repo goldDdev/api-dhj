@@ -24,6 +24,7 @@ export default class ProjectAbsent extends BaseModel {
   public projectId: number
 
   @column()
+  // TODO : pls make coment here to inform jar, Thanks
   public absent: string
 
   @column({

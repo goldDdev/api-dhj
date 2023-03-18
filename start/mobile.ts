@@ -24,6 +24,10 @@ Route.group(() => {
       Route.get('/detail', 'ProjectsController.view')
       Route.get('/:id', 'ProjectsController.view')
     }).prefix('project')
+
+    Route.group(() => {
+      Route.post('/', 'TrackingController.create')
+    }).prefix('tracking')
   }).middleware(['auth'])
 })
   .namespace('App/Controllers/Http/mobile')

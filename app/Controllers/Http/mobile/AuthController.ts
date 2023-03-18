@@ -99,7 +99,7 @@ export default class AuthController {
               table: 'employees',
               column: 'phone_number',
               whereNot: {
-                id: currentUser.id,
+                id: currentUser.employeeId,
               },
             }),
           ]),

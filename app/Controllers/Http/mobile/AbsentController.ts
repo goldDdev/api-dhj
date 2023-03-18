@@ -264,6 +264,4 @@ export default class ProjectsController {
       return response.notFound({ code: codeError.notFound, type: 'notFound' })
     }
   }
-
-  public async addOvertime({ auth, request, response }: HttpContextContract) {}
 }

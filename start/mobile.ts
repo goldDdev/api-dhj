@@ -15,7 +15,6 @@ Route.group(() => {
       Route.put('/close', 'AbsentController.addClose')
       Route.get('/current', 'AbsentController.current')
       Route.get('/generate', 'AbsentController.create')
-      Route.get('/test', 'AbsentController.test')
       Route.get('/', 'AbsentController.index')
     }).prefix('absent')
 

@@ -1,10 +1,11 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import codeError from 'Config/codeError'
 import moment from 'moment'
-import Logger from '@ioc:Adonis/Core/Logger'
+import { DateTime } from 'luxon'
+import { SettingCode } from 'App/Models/Setting'
+import { schema, rules } from '@ioc:Adonis/Core/Validator'
 
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
@@ -149,21 +150,56 @@ export default class ProjectsController {
         schema: schema.create({
           id: schema.number(),
           absent: schema.string(),
-          comeAt: schema.string(),
           latitude: schema.number.optional(),
           longitude: schema.number.optional(),
         }),
       })
 
-      const { id, ...body } = payload
-      const model = await ProjectAbsent.findOrFail(id)
+      const { hour, minute } = (await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.START_TIME)
+        .first()) || { hour: 7, minute: 0 }
+
+      const { value: latePrice } = (await Database.from('settings')
+        .where('code', SettingCode.LATETIME_PRICE_PER_MINUTE)
+        .first()) || { value: 0 }
+
+      const model = await ProjectAbsent.query()
+        .whereNull('come_at')
+        .andWhere('id', payload.id)
+        .firstOrFail()
+
+      const comeAt = DateTime.local({ zone: 'Asia/Jakarta' }).toFormat('HH:mm')
+      const startWork = DateTime.fromObject(
+        { hour: hour, minute: minute },
+        { zone: 'Asia/Jakarta' }
+      )
+      const lateDuration = Math.round(startWork.diffNow('minutes').minutes)
+
       if (model) {
-        await model.merge({ absentBy: auth.user?.employeeId, ...body }).save()
+        model.merge({
+          absentBy: auth.user?.employeeId,
+          comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
+          lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
+          latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+        })
+
+        await model.save()
+        return response.ok({
+          id: model.id,
+          absent: model.absent,
+          comeAt: model.comeAt,
+          closeAt: model.closeAt,
+        })
       }
-      return response.ok(payload)
     } catch (error) {
-      Logger.info(error)
-      return response.unprocessableEntity({ error })
+      return response.notFound({ code: codeError.notFound, type: 'notFound' })
     }
   }
 
@@ -172,19 +208,62 @@ export default class ProjectsController {
       const payload = await request.validate({
         schema: schema.create({
           id: schema.number(),
-          closeAt: schema.string(),
         }),
       })
 
-      const { id, closeAt } = payload
-      const model = await ProjectAbsent.findOrFail(id)
-      if (model) {
-        await model.merge({ closeAt }).save()
-      }
-      return response.ok(payload)
+      const { hour, minute } = (await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.CLOSE_TIME)
+        .first()) || { hour: 17, minute: 0 }
+
+      const getAbsent = await Database.from('project_absents')
+        .select(
+          '*',
+          Database.raw(
+            'EXTRACT(hour from "come_at"::time)::int AS hour,EXTRACT(minute from "come_at"::time)::int AS minute'
+          )
+        )
+        .where('id', payload.id)
+        .andWhereNull('close_at')
+        .firstOrFail()
+
+      const closeWork = DateTime.fromObject(
+        { hour: hour, minute: minute },
+        { zone: 'Asia/Jakarta' }
+      )
+      const comeAt = DateTime.fromObject(
+        { hour: getAbsent.hour, minute: getAbsent.minute },
+        { zone: 'Asia/Jakarta' }
+      )
+      const currentTime = DateTime.local({ zone: 'Asia/Jakarta' })
+
+      const duration = Math.round(
+        (currentTime.toSeconds() < closeWork.toSeconds() ? currentTime : closeWork).diff(
+          comeAt,
+          'minutes'
+        ).minutes
+      )
+
+      const closeAt =
+        currentTime.toSeconds() < closeWork.toSeconds()
+          ? currentTime.toFormat('HH:mm')
+          : closeWork.toFormat('HH:mm')
+
+      await ProjectAbsent.query().where('id', payload.id).update({ closeAt, duration })
+
+      return response.ok({
+        id: payload.id,
+        closeAt: closeAt,
+        duration: duration,
+      })
     } catch (error) {
-      Logger.info(error)
-      return response.unprocessableEntity({ error })
+      return response.notFound({ code: codeError.notFound, type: 'notFound' })
     }
   }
+
+  public async addOvertime({ auth, request, response }: HttpContextContract) {}
 }

@@ -14,6 +14,11 @@ Route.group(() => {
   }).prefix('employee')
 
   Route.group(() => {
+    Route.get('/', 'SettingController.index')
+    Route.put('/', 'SettingController.update')
+  }).prefix('setting')
+
+  Route.group(() => {
     Route.get('/', 'ProjectsController.index')
     Route.post('/', 'ProjectsController.create')
     Route.put('/', 'ProjectsController.update')

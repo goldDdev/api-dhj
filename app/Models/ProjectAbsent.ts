@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
 import Employee from './Employee'
 import Project from './Project'
+import moment from 'moment'
 
 export enum AbsentType {
   A = 'A',
@@ -25,7 +26,11 @@ export default class ProjectAbsent extends BaseModel {
   @column()
   public absent: string
 
-  @column({ columnName: 'absent_at', serializeAs: 'absentAt' })
+  @column({
+    columnName: 'absent_at',
+    serializeAs: 'absentAt',
+    consume: (value) => moment(value).format('yyyy-MM-DD'),
+  })
   public absentAt: string
 
   @column({ columnName: 'come_at', serializeAs: 'comeAt' })
@@ -34,22 +39,30 @@ export default class ProjectAbsent extends BaseModel {
   @column({ columnName: 'close_at', serializeAs: 'closeAt' })
   public closeAt: string
 
-  @column({ columnName: 'late_duration', serializeAs: 'lateDuration' })
+  @column({ columnName: 'late_duration', serializeAs: 'lateDuration', consume: (value) => +value })
   public lateDuration: number
 
-  @column({ columnName: 'late_price', serializeAs: 'latePrice' })
+  @column({ columnName: 'late_price', serializeAs: 'latePrice', consume: (value) => +value })
   public latePrice: number
 
-  @column({ columnName: 'duration', serializeAs: 'duration' })
+  @column({ columnName: 'duration', serializeAs: 'duration', consume: (value) => +value })
   public duration: number
 
   @column()
   public photo: string
 
-  @column({ columnName: 'latitude', serializeAs: 'latitude' })
+  @column({
+    columnName: 'latitude',
+    serializeAs: 'latitude',
+    consume: (value) => parseFloat(value),
+  })
   public latitude: number
 
-  @column({ columnName: 'longitude', serializeAs: 'longitude' })
+  @column({
+    columnName: 'longitude',
+    serializeAs: 'longitude',
+    consume: (value) => parseFloat(value),
+  })
   public longitude: number
 
   @column({ columnName: 'absent_by', serializeAs: 'absentBy' })

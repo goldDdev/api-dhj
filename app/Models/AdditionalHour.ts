@@ -1,18 +1,17 @@
 import { DateTime } from 'luxon'
 import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
+import moment from 'moment'
 import Employee from './Employee'
 import Project from './Project'
-import moment from 'moment'
 
-export enum AbsentType {
-  A = 'A',
-  P = 'P',
-  O = 'O',
-  L = 'L',
+export enum AdditionalStatus {
+  CONFIRM = 'CONFIRM',
+  REJECT = 'REJECT',
+  PENDING = 'PENDING',
 }
 
-export default class ProjectAbsent extends BaseModel {
-  public static table = 'project_absents'
+export default class AdditionalHour extends BaseModel {
+  public static table = 'additional_hours'
 
   @column({ isPrimary: true })
   public id: number
@@ -22,11 +21,6 @@ export default class ProjectAbsent extends BaseModel {
 
   @column({ columnName: 'project_id', serializeAs: 'projectId' })
   public projectId: number
-
-  @column()
-  // TODO : pls make coment here to inform jar, Thanks
-  // A = Absent = tidak datanng, P = Present = hadir
-  public absent: string
 
   @column({
     columnName: 'absent_at',
@@ -41,37 +35,31 @@ export default class ProjectAbsent extends BaseModel {
   @column({ columnName: 'close_at', serializeAs: 'closeAt' })
   public closeAt: string
 
-  @column({ columnName: 'late_duration', serializeAs: 'lateDuration', consume: (value) => +value })
-  public lateDuration: number
+  @column({
+    columnName: 'overtime_duration',
+    serializeAs: 'overtimeDuration',
+    consume: (value) => +value,
+  })
+  public overtimeDuration: number
 
-  @column({ columnName: 'late_price', serializeAs: 'latePrice', consume: (value) => +value })
-  public latePrice: number
+  @column({
+    columnName: 'overtime_price',
+    serializeAs: 'overtimePrice',
+    consume: (value) => +value,
+  })
+  public overtimePrice: number
 
-  @column({ columnName: 'duration', serializeAs: 'duration', consume: (value) => +value })
-  public duration: number
+  @column({ columnName: 'total_earn', serializeAs: 'totalEarn', consume: (value) => +value })
+  public totalEarn: number
+
+  @column({ columnName: 'request_by', serializeAs: 'requestBy' })
+  public requestBy: number
+
+  @column({ columnName: 'action_by', serializeAs: 'actionBy' })
+  public actionBy: number
 
   @column()
-  public photo: string
-
-  @column({
-    columnName: 'latitude',
-    serializeAs: 'latitude',
-    consume: (value) => parseFloat(value),
-  })
-  public latitude: number
-
-  @column({
-    columnName: 'longitude',
-    serializeAs: 'longitude',
-    consume: (value) => parseFloat(value),
-  })
-  public longitude: number
-
-  @column({ columnName: 'absent_by', serializeAs: 'absentBy' })
-  public absentBy: number
-
-  @column({ columnName: 'replace_by', serializeAs: 'replaceBy' })
-  public replaceBy: number
+  public status: string
 
   @column({ columnName: 'note', serializeAs: 'note' })
   public note: string
@@ -90,15 +78,15 @@ export default class ProjectAbsent extends BaseModel {
 
   @belongsTo(() => Employee, {
     localKey: 'id',
-    foreignKey: 'replaceBy',
+    foreignKey: 'actionBy',
   })
-  public replaceEmployee: BelongsTo<typeof Employee>
+  public actionEmployee: BelongsTo<typeof Employee>
 
   @belongsTo(() => Employee, {
     localKey: 'id',
-    foreignKey: 'absentBy',
+    foreignKey: 'requestBy',
   })
-  public absentEmployee: BelongsTo<typeof Employee>
+  public requestEmployee: BelongsTo<typeof Employee>
 
   @belongsTo(() => Project, {
     localKey: 'id',

@@ -39,7 +39,7 @@ export default class Employee extends BaseModel {
 
   @column({
     columnName: 'inactive_note',
-    serializeAs: 'invoiceNote',
+    serializeAs: 'inactiveNote',
   })
   public inactiveNote?: string
 

@@ -26,6 +26,14 @@ Route.group(() => {
     }).prefix('project')
 
     Route.group(() => {
+      Route.post('/', 'AdditionalHourController.create')
+      Route.put('/', 'AdditionalHourController.update')
+      Route.put('/status', 'AdditionalHourController.status')
+      Route.get('/', 'AdditionalHourController.index')
+      Route.get('/:id', 'AdditionalHourController.view')
+    }).prefix('additional')
+
+    Route.group(() => {
       Route.post('/', 'TrackingController.create')
     }).prefix('tracking')
   }).middleware(['auth'])

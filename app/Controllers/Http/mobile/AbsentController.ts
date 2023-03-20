@@ -7,7 +7,7 @@ import { DateTime } from 'luxon'
 import { SettingCode } from 'App/Models/Setting'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 
-export default class ProjectsController {
+export default class AbsentController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Database.from('project_absents')
       .select(

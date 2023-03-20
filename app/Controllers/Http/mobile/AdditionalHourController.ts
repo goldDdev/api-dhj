@@ -67,7 +67,7 @@ export default class ProjectsController {
     return response.ok(query.all())
   }
 
-  public async view({ auth, request, response }: HttpContextContract) {
+  public async view({ request, response }: HttpContextContract) {
     const model = await AdditionalHour.query()
       .select(
         '*',

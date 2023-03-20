@@ -163,13 +163,11 @@ export default class ProjectsController {
     }
   }
 
-  public async update({ auth, request, response }: HttpContextContract) {
+  public async update({ request, response }: HttpContextContract) {
     try {
       const payload = await request.validate({
         schema: schema.create({
           id: schema.number(),
-          employeeId: schema.number(),
-          projectId: schema.number(),
           absentAt: schema.string(),
           comeAt: schema.string(),
           closeAt: schema.string(),
@@ -200,7 +198,6 @@ export default class ProjectsController {
       model
         .merge({
           ...payload,
-          requestBy: auth.user?.employeeId,
           overtimeDuration,
           totalEarn: overtimeDuration * model.overtimePrice,
         })

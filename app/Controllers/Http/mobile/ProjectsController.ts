@@ -45,6 +45,9 @@ export default class ProjectsController {
           'projects.company_name',
           'projects.contact',
           'projects.duration',
+          'projects.location',
+          'projects.latitude',
+          'projects.longitude',
           'projects.start_at',
           'projects.finish_at'
         )

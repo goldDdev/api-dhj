@@ -15,6 +15,9 @@ export default class ProjectBoq extends BaseModel {
   @column({ columnName: 'boq_id', serializeAs: 'boqId' })
   public boqId: number
 
+  @column({ columnName: 'name', serializeAs: 'name' })
+  public name: string
+
   @column({ columnName: 'type_unit', serializeAs: 'typeUnit' })
   public typeUnit: string
 

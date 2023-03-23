@@ -132,11 +132,23 @@ export default class ProjectsController {
           code: codeError.notFound,
           type: 'notFound',
           fields: 'id',
-          value: request.param('id', 0),
+          value: projectId,
         })
       }
 
       return response.status(204)
+    } catch (error) {
+      return response.badGateway({
+        code: codeError.badRequest,
+        type: 'server error',
+      })
+    }
+  }
+
+  public async progres({ auth, response, request }: HttpContextContract) {
+    try {
+      await auth.use('api').authenticate()
+      // TODO insert progress by project_boq_id
     } catch (error) {
       return response.badGateway({
         code: codeError.badRequest,

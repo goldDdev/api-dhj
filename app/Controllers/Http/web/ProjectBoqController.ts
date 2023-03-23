@@ -82,7 +82,11 @@ export default class ProjectBoqController {
       })
 
       const boq = await Boq.findOrFail(payload.boqId)
-      const model = await ProjectBoq.create({ ...payload, typeUnit: boq?.typeUnit })
+      const model = await ProjectBoq.create({
+        ...payload,
+        name: boq?.name,
+        typeUnit: boq?.typeUnit,
+      })
       await model.refresh()
       await model.load('boq')
       model.$extras.name = model.boq.name

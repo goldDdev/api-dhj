@@ -45,7 +45,10 @@ export default class ProjectsController {
           'projects.contact',
           'projects.duration',
           'projects.start_at',
-          'projects.finish_at'
+          'projects.finish_at',
+          'projects.location',
+          'projects.latitude',
+          'projects.longitude'
         )
         .leftJoin('project_workers', 'project_workers.project_id', 'projects.id')
         .preload('workers', (query) => {

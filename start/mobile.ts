@@ -12,6 +12,7 @@ Route.group(() => {
   Route.group(() => {
     Route.group(() => {
       Route.put('/come', 'AbsentController.addCome')
+      Route.put('/', 'AbsentController.addMultiple')
       Route.put('/close', 'AbsentController.addClose')
       Route.get('/current', 'AbsentController.current')
       Route.get('/generate', 'AbsentController.create')

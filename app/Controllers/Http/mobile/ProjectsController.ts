@@ -1,4 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import { schema } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Project from 'App/Models/Project'
 import codeError from 'Config/codeError'
@@ -110,5 +111,37 @@ export default class ProjectsController {
     return response.ok({
       data: query,
     })
+  }
+
+  public async scoping({ auth, response, request }: HttpContextContract) {
+    try {
+      await auth.use('api').authenticate()
+      const payload = await request.validate({
+        schema: schema.create({
+          projectId: schema.number(),
+          latitude: schema.number(),
+          longitude: schema.number(),
+        }),
+      })
+      const { projectId, latitude, longitude } = payload
+      const model = await Project.query().where('id', projectId).first()
+      if (model) {
+        await model.merge({ latitude, longitude }).save()
+      } else {
+        return response.notFound({
+          code: codeError.notFound,
+          type: 'notFound',
+          fields: 'id',
+          value: request.param('id', 0),
+        })
+      }
+
+      return response.status(204)
+    } catch (error) {
+      return response.badGateway({
+        code: codeError.badRequest,
+        type: 'server error',
+      })
+    }
   }
 }

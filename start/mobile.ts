@@ -23,6 +23,7 @@ Route.group(() => {
       Route.get('/absent', 'ProjectsController.index')
       Route.get('/detail', 'ProjectsController.view')
       Route.get('/:id', 'ProjectsController.view')
+      Route.post('/scoping', 'ProjectsController.scoping')
     }).prefix('project')
 
     Route.group(() => {

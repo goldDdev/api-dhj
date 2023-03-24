@@ -3,10 +3,12 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import codeError from 'Config/codeError'
 import moment from 'moment'
-import { DateTime } from 'luxon'
-import { SettingCode } from 'App/Models/Setting'
-import { schema, rules } from '@ioc:Adonis/Core/Validator'
+import Logger from '@ioc:Adonis/Core/Logger'
+import RequestOvertime, { RequestOTStatus } from 'App/Models/RequestOvertime'
+import Setting, { SettingCode } from 'App/Models/Setting'
+import { schema } from '@ioc:Adonis/Core/Validator'
 import { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
+import { DateTime } from 'luxon'
 
 export default class AbsentController {
   public async index({ auth, response, request }: HttpContextContract) {
@@ -97,9 +99,6 @@ export default class AbsentController {
       .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
       .andWhere('absent_at', currentDate)
 
-    if (models.length === 0) {
-    }
-
     const summary = models.reduce(
       (p, n) => ({
         present: p.present + Number(n.absent === AbsentType.P),
@@ -121,63 +120,6 @@ export default class AbsentController {
         })
       ),
     })
-  }
-
-  public async create({ auth, request, response }: HttpContextContract) {
-    const trx = await Database.transaction()
-    try {
-      const currentDate = moment().format('yyyy-MM-DD')
-      request.updateBody({
-        absentAt: currentDate,
-      })
-
-      if (auth.user) {
-        await request.validate({
-          schema: schema.create({
-            absentAt: schema.date({}, [
-              rules.unique({
-                table: 'project_absents',
-                column: 'absent_at',
-                where: {
-                  project_id: auth.user?.employee.work.projectId,
-                  absent_by: auth.user?.employeeId,
-                },
-              }),
-            ]),
-          }),
-        })
-
-        const model = auth.user.employee.work
-        await model?.load('members', (query) => {
-          query.where('status', ProjectWorkerStatus.ACTIVE)
-        })
-        const data = model?.members
-          .filter((v) => v.status === ProjectWorkerStatus.ACTIVE)
-          .map((value) => ({
-            absentAt: currentDate,
-            absentBy: auth.user?.employeeId,
-            projectId: value.projectId,
-            employeeId: value.employeeId,
-          }))
-
-        const absents = await ProjectAbsent.createMany(data, { client: trx })
-        await trx.commit()
-        return response.created(absents)
-      }
-      await trx.rollback()
-    } catch (error) {
-      await trx.rollback()
-      return response.ok({
-        error: [
-          {
-            code: codeError.exists,
-            fields: 'absentAt',
-            type: 'exists',
-            value: request.input('absentAt'),
-          },
-        ],
-      })
-    }
   }
 
   public async addCome({ auth, request, response }: HttpContextContract) {
@@ -343,6 +285,118 @@ export default class AbsentController {
       })
     } catch (error) {
       return response.notFound({ code: codeError.notFound, type: 'notFound' })
+    }
+  }
+
+  public async closeMultiple({ auth, response }: HttpContextContract) {
+    const trx = await Database.transaction()
+    try {
+      const currentDate = moment().format('yyyy-MM-DD')
+      const setting = await Setting.findByOrFail('code', SettingCode.OVERTIME_PRICE_PER_MINUTE)
+
+      const getAbsent = await Database.from('project_absents')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "come_at"::time)::int AS hour,EXTRACT(minute from "come_at"::time)::int AS minute'
+          )
+        )
+        .joinRaw(
+          'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+        )
+        .where('project_absents.absent_at', currentDate)
+        .andWhere('project_absents.project_id', auth.user!.employee.work.projectId)
+        .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
+        .andWhereNull('close_at')
+        .andWhereNotNull('absent')
+        .first()
+
+      const { hour, minute } = (await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.CLOSE_TIME)
+        .first()) || { hour: 17, minute: 0 }
+
+      const closeWork = DateTime.fromObject(
+        { hour: hour, minute: minute },
+        { zone: 'Asia/Jakarta' }
+      )
+
+      const closeTreshold = DateTime.fromObject(
+        { hour: hour, minute: 15 },
+        { zone: 'Asia/Jakarta' }
+      )
+
+      const comeAt = DateTime.fromObject(
+        { hour: getAbsent.hour, minute: getAbsent.minute },
+        { zone: 'Asia/Jakarta' }
+      )
+      const currentTime = DateTime.local({ zone: 'Asia/Jakarta' })
+
+      const duration = Math.round(
+        (currentTime.toSeconds() < closeWork.toSeconds() ? currentTime : closeWork).diff(
+          comeAt,
+          'minutes'
+        ).minutes
+      )
+
+      const closeAt = currentTime.toSeconds() < closeWork.toSeconds() ? currentTime : closeWork
+      const closeTime = closeAt.toFormat('HH:mm')
+
+      const workers = (
+        (await ProjectAbsent.query()
+          .select('project_absents.id')
+          .joinRaw(
+            'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+          )
+          .where('project_absents.project_id', auth.user!.employee.work.projectId)
+          .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
+          .andWhereNull('project_absents.close_at')
+          .andWhere('absent_at', currentDate)) || []
+      ).map((v) => v.id)
+
+      // NOTE: Create Additional Hour if absent > 15minutes
+      if (currentTime.toSeconds() > closeTreshold.toSeconds()) {
+        const [{ count }] = await Database.query()
+          .from('request_overtimes')
+          .where({
+            employee_id: auth.user!.employeeId,
+            project_id: auth.user!.employee.work.projectId,
+            absent_at: currentDate,
+          })
+          .andWhere('status', '!=', RequestOTStatus.REJECT)
+          .count('*')
+
+        if (+count === 0) {
+          const overtimeDuration = Math.round(currentTime.diff(closeAt, 'minutes').minutes)
+          const totalEarn = overtimeDuration * +setting.value
+          await RequestOvertime.create(
+            {
+              absentAt: currentDate,
+              closeAt: currentTime.toFormat('HH:mm'),
+              comeAt: closeTime,
+              employeeId: auth.user!.employeeId,
+              projectId: auth.user!.employee.work.projectId,
+              overtimeDuration,
+              overtimePrice: +setting.value,
+              totalEarn: totalEarn * workers.length,
+            },
+            { client: trx }
+          )
+        }
+      }
+
+      await ProjectAbsent.query({ client: trx })
+        .whereIn('id', workers)
+        .update({ closeAt: closeTime, duration })
+      await trx.commit()
+      return response.noContent()
+    } catch (error) {
+      Logger.error(error)
+      await trx.rollback()
+      return response.notFound({ code: codeError.notFound, type: 'notFound', error })
     }
   }
 }

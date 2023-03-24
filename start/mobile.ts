@@ -14,8 +14,8 @@ Route.group(() => {
       Route.put('/come', 'AbsentController.addCome')
       Route.put('/comes', 'AbsentController.addMultiple')
       Route.put('/close', 'AbsentController.addClose')
+      Route.put('/closes', 'AbsentController.closeMultiple')
       Route.get('/current', 'AbsentController.current')
-      Route.get('/generate', 'AbsentController.create')
       Route.get('/', 'AbsentController.index')
     }).prefix('absent')
 
@@ -28,11 +28,9 @@ Route.group(() => {
     }).prefix('project')
 
     Route.group(() => {
-      Route.post('/', 'AdditionalHourController.create')
-      Route.put('/', 'AdditionalHourController.update')
-      Route.put('/status', 'AdditionalHourController.status')
       Route.get('/', 'AdditionalHourController.index')
       Route.get('/:id', 'AdditionalHourController.view')
+      Route.delete('/:id', 'AdditionalHourController.destroy')
     }).prefix('additional')
 
     Route.group(() => {

@@ -18,7 +18,7 @@ export default class ProjectsController {
         'location',
         'contact',
         Database.raw(
-          '(SELECT COUNT(*) FROM project_workers a1 WHERE a1.project_id = projects.id AND a1.parent_id = project_workers.id)::int AS "totalWoker"'
+          '(SELECT COUNT(*) FROM project_workers a1 WHERE a1.project_id = projects.id AND a1.parent_id = project_workers.id AND a1.status = \'ACTIVE\')::int AS "totalWoker"'
         )
       )
       .leftJoin('project_workers', 'project_workers.project_id', 'projects.id')

@@ -3,16 +3,15 @@ import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
 import moment from 'moment'
 import Employee from './Employee'
 import Project from './Project'
-import RequestOvertime from './RequestOvertime'
 
-export enum AdditionalStatus {
+export enum RequestOTStatus {
   CONFIRM = 'CONFIRM',
   REJECT = 'REJECT',
   PENDING = 'PENDING',
 }
 
-export default class AdditionalHour extends BaseModel {
-  public static table = 'additional_hours'
+export default class RequestOvertime extends BaseModel {
+  public static table = 'request_overtimes'
 
   @column({ isPrimary: true })
   public id: number
@@ -53,9 +52,6 @@ export default class AdditionalHour extends BaseModel {
   @column({ columnName: 'total_earn', serializeAs: 'totalEarn', consume: (value) => +value })
   public totalEarn: number
 
-  @column({ columnName: 'request_by', serializeAs: 'requestBy' })
-  public requestBy: number
-
   @column({ columnName: 'action_by', serializeAs: 'actionBy' })
   public actionBy: number
 
@@ -83,12 +79,6 @@ export default class AdditionalHour extends BaseModel {
   })
   public actionEmployee: BelongsTo<typeof Employee>
 
-  @belongsTo(() => RequestOvertime, {
-    localKey: 'id',
-    foreignKey: 'requestBy',
-  })
-  public requestOvertime: BelongsTo<typeof RequestOvertime>
-
   @belongsTo(() => Project, {
     localKey: 'id',
     foreignKey: 'projectId',
@@ -97,10 +87,14 @@ export default class AdditionalHour extends BaseModel {
 
   public serializeExtras() {
     return {
-      name: this.$extras.name,
-      cardID: this.$extras.cardID,
-      phoneNumber: this.$extras.phoneNumber,
+      requestName: this.$extras.request_name,
+      cardID: this.$extras.card_id,
+      phoneNumber: this.$extras.phone_number,
       role: this.$extras.role,
+      projectName: this.$extras.project_name,
+      projectStatus: this.$extras.project_status,
+      totalWorker: +this.$extras.total_worker,
+      workers: this.$extras.workers,
     }
   }
 }

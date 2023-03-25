@@ -298,4 +298,9 @@ export default class ProjectsController {
       Logger.warn(err)
     }
   }
+
+  public async confirmProgres({ request, response }: HttpContextContract) {
+    console.log(request, response)
+    // TODO : level koordinator bisa aprove/reject/edit inputan progress project boq dari bawahan nya
+  }
 }

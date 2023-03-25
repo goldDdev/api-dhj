@@ -122,6 +122,50 @@ export default class AbsentController {
     })
   }
 
+  public async view({ auth, request, response }: HttpContextContract) {
+    const models = await ProjectAbsent.query()
+      .select(
+        '*',
+        'employees.name',
+        Database.raw("TO_CHAR(absent_at, 'YYYY-MM-DD') as absent_at"),
+        'project_absents.id',
+        'employees.card_id as cardID',
+        'employees.phone_number as phoneNumber',
+        'project_workers.role',
+        'project_absents.project_id'
+      )
+      .join('employees', 'employees.id', '=', 'project_absents.employee_id')
+      .joinRaw(
+        'INNER JOIN project_workers ON employees.id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+      )
+      .preload('replaceEmployee')
+      .where('project_absents.project_id', request.input('id', 0))
+      .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
+      .andWhere('absent_at', request.input('date', moment().format('yyyy-MM-DD')))
+
+    const summary = models.reduce(
+      (p, n) => ({
+        present: p.present + Number(n.absent === AbsentType.P),
+        absent: p.absent + Number(n.absent === AbsentType.A),
+        noAbsent: p.noAbsent + Number(n.absent === null),
+      }),
+      { present: 0, absent: 0, noAbsent: 0 }
+    )
+    summary['total'] = models.length
+
+    return response.ok({
+      absentAt: request.input('date', moment().format('yyyy-MM-DD')),
+      summary,
+      members: models.map((v) =>
+        v.serialize({
+          fields: {
+            omit: ['created_at', 'updated_at', 'latitude', 'longitude'],
+          },
+        })
+      ),
+    })
+  }
+
   public async addCome({ auth, request, response }: HttpContextContract) {
     try {
       const payload = await request.validate({

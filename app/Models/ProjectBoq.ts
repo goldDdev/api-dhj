@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, afterFind, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
 import Project from './Project'
 import Boq from './Boq'
 
@@ -54,16 +54,4 @@ export default class ProjectBoq extends BaseModel {
     foreignKey: 'boqId',
   })
   public boq: BelongsTo<typeof Boq>
-
-  public serializeExtras() {
-    return {
-      name: this.$extras.name,
-    }
-  }
-
-  @afterFind()
-  public static async afterFindHook(model: ProjectBoq) {
-    await model.load('boq')
-    model.$extras.name = model.boq.name
-  }
 }

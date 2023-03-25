@@ -4,7 +4,7 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import Project from 'App/Models/Project'
 import codeError from 'Config/codeError'
 import moment from 'moment'
-
+import Logger from '@ioc:Adonis/Core/Logger'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
@@ -59,24 +59,14 @@ export default class ProjectsController {
           query.join('employees', 'employees.id', '=', 'project_workers.employee_id')
         })
 
-        .where('projects.id', request.param('id', auth.user!.employee.work.projectId))
-        .andWhere('project_workers.employee_id', auth.user!.employeeId)
+        .where('projects.id', request.param('id'))
         .orderBy('projects.id', 'asc')
         .firstOrFail()
 
       model.$extras.totalWoker = model.workers.length
-      return response.ok(
-        model.serialize({
-          relations: {
-            workers: {
-              fields: {
-                omit: ['parentId', 'projectId'],
-              },
-            },
-          },
-        })
-      )
+      return response.ok(auth.user)
     } catch (error) {
+      Logger.info(error)
       return response.notFound({
         code: codeError.notFound,
         type: 'notFound',
@@ -161,5 +151,9 @@ export default class ProjectsController {
         type: 'server error',
       })
     }
+  }
+
+  public async test({ auth, response, request }: HttpContextContract) {
+    return response.ok(auth.user)
   }
 }

@@ -43,10 +43,10 @@ export default class Employee extends BaseModel {
   })
   public inactiveNote?: string
 
-  @column({ columnName: 'hourly_wages', serializeAs: 'hourlyWages' })
+  @column({ columnName: 'hourly_wages', serializeAs: 'hourlyWages', consume: (value) => +value })
   public hourlyWages?: number
 
-  @column({ columnName: 'salary', serializeAs: 'salary' })
+  @column({ columnName: 'salary', serializeAs: 'salary', consume: (value) => +value })
   public salary: number
 
   @computed()

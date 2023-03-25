@@ -6,33 +6,34 @@ import ProjectBoq from 'App/Models/ProjectBoq'
 
 export default class ProjectBoqController {
   public async index({ response, request }: HttpContextContract) {
-    return response.send({
-      data: await ProjectBoq.query()
-        .select(
-          'project_boqs.id',
-          'project_boqs.boq_id',
-          'bill_of_quantities.name',
-          'price',
-          'unit',
-          'project_boqs.type_unit',
-          'additional_unit',
-          'additionalPrice',
-          'project_boqs.updated_at'
-        )
-        .join('bill_of_quantities', 'bill_of_quantities.id', '=', 'project_boqs.boq_id')
-        .if(request.input('name'), (query) => {
-          query.whereILike('bill_of_quantities.name', `%${request.input('name')}%`)
-        })
-        .if(
-          request.input('orderBy') === 'name',
-          (query) => {
-            query.orderBy('bill_of_quantities.name', request.input('order', 'asc'))
-          },
-          (query) => {
-            query.orderBy(`project_boqs.${request.input('orderBy')}`, request.input('order', 'asc'))
-          }
-        ),
-    })
+    const query = await ProjectBoq.query()
+      .select(
+        'project_boqs.name',
+        'project_boqs.id',
+        'project_boqs.boq_id',
+        'price',
+        'unit',
+        'project_boqs.type_unit',
+        'additional_unit',
+        'additionalPrice',
+        'project_boqs.updated_at'
+      )
+      .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
+      .where('project_id', request.param('id'))
+      .if(request.input('name'), (query) => {
+        query.whereILike('project_boqs.name', `%${request.input('name')}%`)
+      })
+      .if(
+        request.input('orderBy'),
+        (query) => {
+          query.orderBy('project_boqs.name', request.input('order', 'asc'))
+        },
+        (query) => {
+          query.orderBy(`project_boqs.${request.input('orderBy')}`, request.input('order', 'asc'))
+        }
+      )
+
+    return response.send({ data: query })
   }
 
   public async search({ response, request }: HttpContextContract) {
@@ -55,6 +56,9 @@ export default class ProjectBoqController {
   public async view({ request, response }: HttpContextContract) {
     try {
       const model = await ProjectBoq.findOrFail(request.param('id'))
+      await model.load('boq')
+
+      model.$extras.name = model.boq.name
       return response.ok({
         data: model.serialize({
           relations: {
@@ -65,7 +69,6 @@ export default class ProjectBoqController {
         }),
       })
     } catch (error) {
-      console.log(error)
       return response.notFound({ error })
     }
   }
@@ -88,15 +91,9 @@ export default class ProjectBoqController {
         typeUnit: boq?.typeUnit,
       })
       await model.refresh()
-      await model.load('boq')
-      model.$extras.name = model.boq.name
 
       return response.created({
-        data: model.serialize({
-          relations: {
-            boq: { fields: [] },
-          },
-        }),
+        data: model.serialize({}),
       })
     } catch (error) {
       return response.unprocessableEntity({ error })
@@ -124,17 +121,11 @@ export default class ProjectBoqController {
         })
       }
 
-      await model.merge({ ...payload, typeUnit: boq?.typeUnit }).save()
+      await model.merge({ ...payload, name: boq?.name, typeUnit: boq?.typeUnit }).save()
       await model.refresh()
-      await model.load('boq')
-      model.$extras.name = model.boq.name
 
       return response.created({
-        data: model.serialize({
-          relations: {
-            boq: { fields: [] },
-          },
-        }),
+        data: model.serialize({}),
       })
     } catch (error) {
       return response.unprocessableEntity({ error })

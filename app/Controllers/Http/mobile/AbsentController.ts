@@ -104,6 +104,15 @@ export default class AbsentController {
         })
         .first()
 
+      const inputWorkers = request.input('workers', [])
+      const workers = await ProjectWorker.query()
+        .where({
+          project_id: request.input('projectId'),
+          parent_id: work?.id || 0,
+          status: ProjectWorkerStatus.ACTIVE,
+        })
+        .whereIn('id', inputWorkers)
+
       const [{ count }] = await Database.query()
         .from('project_absents')
         .joinRaw(
@@ -142,8 +151,7 @@ export default class AbsentController {
         const lateDuration = Math.round(startWork.diffNow('minutes').minutes)
 
         await ProjectAbsent.createMany(
-          model?.members
-            .filter((v) => v.status === ProjectWorkerStatus.ACTIVE)
+          (inputWorkers.length > 0 ? workers : [])
             .map((value) => ({
               absentAt: currentDate,
               absentBy: auth.user?.employeeId,

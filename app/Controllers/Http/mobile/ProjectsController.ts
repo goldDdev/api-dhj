@@ -7,6 +7,7 @@ import codeError from 'Config/codeError'
 import moment from 'moment'
 import Logger from '@ioc:Adonis/Core/Logger'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
+import ProjectAbsent from 'App/Models/ProjectAbsent'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
@@ -71,8 +72,28 @@ export default class ProjectsController {
           .andWhere('project_workers.parent_id', work?.id || 0)
       })
 
+      const models = await ProjectAbsent.query()
+        .select(
+          '*',
+          'employees.name',
+          Database.raw("TO_CHAR(absent_at, 'YYYY-MM-DD') as absent_at"),
+          'project_absents.id',
+          'employees.card_id as cardID',
+          'employees.phone_number as phoneNumber',
+          'project_workers.role',
+          'project_absents.project_id'
+        )
+        .join('employees', 'employees.id', '=', 'project_absents.employee_id')
+        .joinRaw(
+          'INNER JOIN project_workers ON employees.id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+        )
+        .preload('replaceEmployee')
+        .where('project_absents.project_id', request.param('id', 0))
+        .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
+        .andWhere('absent_at', request.input('date', moment().format('yyyy-MM-DD')))
+
       model.$extras.totalWoker = model.workers.length
-      return response.ok(model.serialize())
+      return response.ok({ ...model.serialize(), absents: models })
     } catch (error) {
       Logger.info(error)
       return response.notFound({

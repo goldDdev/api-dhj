@@ -24,6 +24,8 @@ export default class EmployeesController {
             .orWhereILike('phone_number', `%${request.input('name')}%`)
         )
         .if(request.input('role'), (query) => query.where('role', request.input('role')))
+        .if(request.input('lead'), (query) => query.whereNotIn('role', ['WORKER', 'STAFF']))
+        .if(request.input('worker'), (query) => query.whereIn('role', ['WORKER', 'STAFF']))
         .if(request.input('status'), (query) => {
           if (request.input('status') === 'ACTIVE') {
             query.whereNull('inactive_at')

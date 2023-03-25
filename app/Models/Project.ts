@@ -45,10 +45,18 @@ export default class Project extends BaseModel {
   @column()
   public location: string
 
-  @column({ columnName: 'latitude', serializeAs: 'latitude' })
+  @column({
+    columnName: 'latitude',
+    serializeAs: 'latitude',
+    consume: (value) => parseFloat(value),
+  })
   public latitude: number
 
-  @column({ columnName: 'longitude', serializeAs: 'longitude' })
+  @column({
+    columnName: 'longitude',
+    serializeAs: 'longitude',
+    consume: (value) => parseFloat(value),
+  })
   public longitude: number
 
   @column({ columnName: 'status', serializeAs: 'status' })

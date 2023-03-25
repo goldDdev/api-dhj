@@ -11,11 +11,9 @@ Route.group(() => {
 
   Route.group(() => {
     Route.group(() => {
-      Route.put('/come', 'AbsentController.addCome')
-      Route.put('/comes', 'AbsentController.addMultiple')
+      Route.post('/come', 'AbsentController.addCome')
       Route.put('/close', 'AbsentController.addClose')
-      Route.put('/closes', 'AbsentController.closeMultiple')
-      Route.get('/current', 'AbsentController.current')
+      Route.get('/:id', 'AbsentController.view')
       Route.get('/', 'AbsentController.index')
     }).prefix('absent')
 

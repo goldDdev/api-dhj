@@ -47,22 +47,25 @@ export default class ProjectsController {
           'projects.contact',
           'projects.duration',
           'projects.location',
-          'cast(projects.latitude as decimal)',
-          'cast(projects.longitude as decimal)',
+          'projects.latitude',
+          'projects.longitude',
           'projects.start_at',
           'projects.finish_at'
         )
-        .leftJoin('project_workers', 'project_workers.project_id', 'projects.id')
-        .preload('workers', (query) => {
-          query.join('employees', 'employees.id', '=', 'project_workers.employee_id')
-        })
-
         .where('projects.id', request.param('id'))
         .orderBy('projects.id', 'asc')
         .firstOrFail()
 
+      await model.load('workers', (query) => {
+        query
+          .join('employees', 'employees.id', '=', 'project_workers.employee_id')
+          .if(auth.user?.employee?.work?.id, (query) => {
+            query.andWhere('project_workers.parent_id', auth.user!.employee!.work!.id)
+          })
+      })
+
       model.$extras.totalWoker = model.workers.length
-      return response.ok(auth.user)
+      return response.ok(model.serialize())
     } catch (error) {
       Logger.info(error)
       return response.notFound({

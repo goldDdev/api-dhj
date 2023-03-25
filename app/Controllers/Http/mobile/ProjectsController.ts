@@ -2,6 +2,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Project from 'App/Models/Project'
+import ProjectProgres from 'App/Models/ProjectProgres'
 import codeError from 'Config/codeError'
 import moment from 'moment'
 
@@ -46,13 +47,10 @@ export default class ProjectsController {
           'projects.contact',
           'projects.duration',
           'projects.location',
-          'projects.latitude',
-          'projects.longitude',
+          'cast(projects.latitude as decimal)',
+          'cast(projects.longitude as decimal)',
           'projects.start_at',
-          'projects.finish_at',
-          'projects.location',
-          'projects.latitude',
-          'projects.longitude'
+          'projects.finish_at'
         )
         .leftJoin('project_workers', 'project_workers.project_id', 'projects.id')
         .preload('workers', (query) => {
@@ -152,14 +150,34 @@ export default class ProjectsController {
   }
 
   public async progres({ auth, response, request }: HttpContextContract) {
+    const trx = await Database.transaction()
     try {
       await auth.use('api').authenticate()
-      // TODO insert progress by project_boq_id
-    } catch (error) {
-      return response.badGateway({
-        code: codeError.badRequest,
-        type: 'server error',
+      const currentUser = auth.use('api').user!
+      const payload = await request.validate({
+        schema: schema.create({
+          projectId: schema.number(),
+          boqId: schema.number(),
+          progres: schema.number(),
+        }),
       })
+      const { projectId, boqId, progres } = payload
+      await ProjectProgres.create(
+        {
+          projectId,
+          projectBoqId: boqId,
+          progres,
+          submitedProgres: progres,
+          submitedBy: currentUser.id,
+        },
+        { client: trx }
+      )
+      await trx.commit()
+      return response.status(204)
+    } catch (error) {
+      await trx.rollback()
+      console.error(error)
+      return response.notFound({ code: codeError.badRequest, type: 'Server error' })
     }
   }
 }

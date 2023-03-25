@@ -6,6 +6,7 @@ import ProjectProgres from 'App/Models/ProjectProgres'
 import codeError from 'Config/codeError'
 import moment from 'moment'
 import Logger from '@ioc:Adonis/Core/Logger'
+import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
@@ -38,6 +39,14 @@ export default class ProjectsController {
 
   public async view({ auth, request, response }: HttpContextContract) {
     try {
+      const work = await ProjectWorker.query()
+        .where({
+          project_id: request.param('id'),
+          employee_id: auth.user?.employeeId,
+          status: ProjectWorkerStatus.ACTIVE,
+        })
+        .first()
+
       const model = await Project.query()
         .select(
           'projects.id',
@@ -59,9 +68,7 @@ export default class ProjectsController {
       await model.load('workers', (query) => {
         query
           .join('employees', 'employees.id', '=', 'project_workers.employee_id')
-          .if(auth.user?.employee?.work?.id, (query) => {
-            query.andWhere('project_workers.parent_id', auth.user!.employee!.work!.id)
-          })
+          .andWhere('project_workers.parent_id', work?.id || 0)
       })
 
       model.$extras.totalWoker = model.workers.length

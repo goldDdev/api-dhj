@@ -6,7 +6,7 @@ import moment from 'moment'
 import Logger from '@ioc:Adonis/Core/Logger'
 import RequestOvertime, { RequestOTStatus } from 'App/Models/RequestOvertime'
 import Setting, { SettingCode } from 'App/Models/Setting'
-import { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
+import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import { DateTime } from 'luxon'
 
 export default class AbsentController {
@@ -95,13 +95,22 @@ export default class AbsentController {
   public async addCome({ auth, request, response }: HttpContextContract) {
     try {
       const currentDate = moment().format('yyyy-MM-DD')
+
+      const work = await ProjectWorker.query()
+        .where({
+          project_id: request.input('projectId'),
+          employee_id: auth.user?.employeeId,
+          status: ProjectWorkerStatus.ACTIVE,
+        })
+        .first()
+
       const [{ count }] = await Database.query()
         .from('project_absents')
         .joinRaw(
           'INNER JOIN project_workers ON project_workers.employee_id = project_absents.employee_id AND project_absents.project_id = project_workers.project_id'
         )
         .where('project_absents.project_id', request.input('projectId'))
-        .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
+        .andWhere('project_workers.parent_id', work?.id || 0)
         .andWhere('absent_at', currentDate)
         .count('*')
 
@@ -147,6 +156,18 @@ export default class AbsentController {
               latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
               absent: request.input('absent'),
             }))
+            .concat({
+              absentAt: currentDate,
+              absentBy: auth.user?.employeeId,
+              projectId: request.input('projectId'),
+              employeeId: work!.employeeId,
+              latitude: request.input('latitude', 0),
+              longitude: request.input('longitude', 0),
+              comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
+              lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
+              latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
+              absent: request.input('absent'),
+            })
         )
       }
 
@@ -157,9 +178,16 @@ export default class AbsentController {
     }
   }
 
-  public async addClose({ auth, response }: HttpContextContract) {
+  public async addClose({ auth, request, response }: HttpContextContract) {
     const trx = await Database.transaction()
     try {
+      const work = await ProjectWorker.query({ client: trx })
+        .where({
+          project_id: request.input('projectId'),
+          employee_id: auth.user?.employeeId,
+          status: ProjectWorkerStatus.ACTIVE,
+        })
+        .first()
       const currentDate = moment().format('yyyy-MM-DD')
       const setting = await Setting.findByOrFail('code', SettingCode.OVERTIME_PRICE_PER_MINUTE)
 
@@ -173,9 +201,8 @@ export default class AbsentController {
           'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
         )
         .where('project_absents.absent_at', currentDate)
-        .andWhere('project_absents.project_id', auth.user!.employee.work.projectId)
-        .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
-        .andWhereNull('close_at')
+        .andWhere('project_absents.project_id', request.input('projectId'))
+        .andWhere('project_workers.parent_id', work?.id || 0)
         .andWhereNotNull('absent')
         .first()
 
@@ -220,9 +247,10 @@ export default class AbsentController {
           .joinRaw(
             'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
           )
-          .where('project_absents.project_id', auth.user!.employee.work.projectId)
-          .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
+          .where('project_absents.project_id', request.input('projectId'))
+          .andWhere('project_workers.parent_id', work?.id || 0)
           .andWhereNull('project_absents.close_at')
+          .andWhere('project_absents.absent', 'P')
           .andWhere('absent_at', currentDate)) || []
       ).map((v) => v.id)
 
@@ -232,7 +260,7 @@ export default class AbsentController {
           .from('request_overtimes')
           .where({
             employee_id: auth.user!.employeeId,
-            project_id: auth.user!.employee.work.projectId,
+            project_id: request.input('projectId'),
             absent_at: currentDate,
           })
           .andWhere('status', '!=', RequestOTStatus.REJECT)
@@ -247,7 +275,7 @@ export default class AbsentController {
               closeAt: currentTime.toFormat('HH:mm'),
               comeAt: closeTime,
               employeeId: auth.user!.employeeId,
-              projectId: auth.user!.employee.work.projectId,
+              projectId: request.input('projectId'),
               overtimeDuration,
               overtimePrice: +setting.value,
               totalEarn: totalEarn * workers.length,
@@ -260,6 +288,16 @@ export default class AbsentController {
       await ProjectAbsent.query({ client: trx })
         .whereIn('id', workers)
         .update({ closeAt: closeTime, duration })
+
+      await ProjectAbsent.query({ client: trx })
+        .where({
+          employee_id: auth.user?.employeeId,
+          project_id: request.input('projectId'),
+          absent_at: currentDate,
+        })
+        .andWhereNull('close_at')
+        .update({ closeAt: closeTime, duration })
+
       await trx.commit()
       return response.noContent()
     } catch (error) {

@@ -162,7 +162,7 @@ export default class AbsentController {
               comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
               lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
               latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
-              absent: request.input('absent'),
+              absent: request.input('absent', 'P'),
             }))
             .concat({
               absentAt: currentDate,
@@ -174,7 +174,7 @@ export default class AbsentController {
               comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
               lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
               latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
-              absent: request.input('absent'),
+              absent: request.input('absent', 'P'),
             })
         )
       }

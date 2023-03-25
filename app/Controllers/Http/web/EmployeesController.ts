@@ -3,6 +3,8 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Employee, { EmployeeType } from 'App/Models/Employee'
+import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
+
 export default class EmployeesController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
@@ -26,6 +28,17 @@ export default class EmployeesController {
         .if(request.input('role'), (query) => query.where('role', request.input('role')))
         .if(request.input('lead'), (query) => query.whereNotIn('role', ['WORKER', 'STAFF']))
         .if(request.input('worker'), (query) => query.whereIn('role', ['WORKER', 'STAFF']))
+        .if(request.input('except'), (query) => {
+          query.whereNotIn(
+            'id',
+            (
+              await ProjectWorker.query().where({
+                project_id: request.input('except'),
+                status: ProjectWorkerStatus.ACTIVE,
+              })
+            ).map((v) => v.employeeId)
+          )
+        })
         .if(request.input('status'), (query) => {
           if (request.input('status') === 'ACTIVE') {
             query.whereNull('inactive_at')

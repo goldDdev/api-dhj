@@ -223,6 +223,7 @@ export default class ProjectOvertimeController {
 
       const model = await RequestOvertime.findOrFail(payload.id)
       await model.load('employee', (q) => q.preload('work'))
+
       if (payload.status === RequestOTStatus.CONFIRM) {
         const absents = await ProjectAbsent.query()
           .select('*', 'project_absents.id')
@@ -232,7 +233,6 @@ export default class ProjectOvertimeController {
           .where('project_absents.project_id', model.projectId)
           .andWhere({ absent_at: model.absentAt, parent_id: model.employee.work.id, absent: 'P' })
 
-        //TODO: create login
         await AdditionalHour.createMany(
           absents.map((v) => ({
             absentAt: model.absentAt,
@@ -244,14 +244,17 @@ export default class ProjectOvertimeController {
             overtimePrice: model.overtimePrice,
             totalEarn: model.overtimeDuration * model.overtimePrice,
             requestBy: model.id,
-            actionBy: 1,
+            actionBy: auth.user?.employeeId,
             status: RequestOTStatus.CONFIRM,
           }))
         )
       }
 
-      await model.merge({ status: payload.status, actionBy: 1 }).save()
-      return response.noContent()
+      await model.merge({ status: payload.status, actionBy: auth.user?.employeeId }).save()
+      await model.load('actionEmployee')
+      await model.refresh()
+
+      return response.ok({ data: model.serialize() })
     } catch (error) {
       return response.unprocessableEntity(error)
     }

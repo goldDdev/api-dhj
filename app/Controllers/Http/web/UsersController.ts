@@ -168,4 +168,10 @@ export default class UsersController {
       return response.unprocessableEntity({ error })
     }
   }
+
+  public async current({ auth, response }: HttpContextContract) {
+    return response.ok({
+      data: auth.user?.serialize(),
+    })
+  }
 }

@@ -19,34 +19,36 @@ export default class EmployeesController {
           'users.email',
         ])
         .leftJoin('users', 'users.employee_id', 'employees.id')
+        .where('role', 'NOT IN', ['ADMIN', 'OWNER'])
+
         .if(request.input('name'), (query) =>
-          query
-            .whereILike('name', `%${request.input('name')}%`)
-            .orWhereILike('card_id', `%${request.input('name')}%`)
-            .orWhereILike('phone_number', `%${request.input('name')}%`)
+          query.andWhereILike('name', `%${request.input('name')}%`)
         )
-        .if(request.input('role'), (query) => query.where('role', request.input('role')))
-        .if(request.input('lead'), (query) => query.whereNotIn('role', ['WORKER', 'STAFF']))
-        .if(request.input('worker'), (query) => query.whereIn('role', ['WORKER', 'STAFF']))
-        .if(request.input('except'), (query) => {
-          query.whereNotIn(
-            'id',
-            (
-              await ProjectWorker.query().where({
-                project_id: request.input('except'),
-                status: ProjectWorkerStatus.ACTIVE,
-              })
-            ).map((v) => v.employeeId)
+        .if(request.input('role'), (query) => query.andWhere('role', request.input('role')))
+        .if(request.input('type'), (query) => {
+          if (request.input('type') === 'lead') {
+            query.andWhereNotIn('role', ['WORKER', 'STAFF'])
+          } else {
+            query.andWhereIn('role', ['WORKER', 'STAFF'])
+          }
+        })
+        .if(request.input('except'), async (query) => {
+          const model = await ProjectWorker.query().where({
+            project_id: request.input('except'),
+            status: ProjectWorkerStatus.ACTIVE,
+          })
+          query.andWhereNotIn(
+            'employees.id',
+            model.map((v) => v.employeeId)
           )
         })
         .if(request.input('status'), (query) => {
           if (request.input('status') === 'ACTIVE') {
-            query.whereNull('inactive_at')
+            query.andWhereNull('inactive_at')
           } else {
-            query.whereNotNull('inactive_at')
+            query.andWhereNotNull('inactive_at')
           }
         })
-        .where('role', 'NOT IN', ['ADMIN', 'OWNER'])
         .orderBy('id', 'desc')
         .paginate(request.input('page', 1), request.input('perPage', 15))
     )

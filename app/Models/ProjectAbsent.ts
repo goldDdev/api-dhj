@@ -112,6 +112,8 @@ export default class ProjectAbsent extends BaseModel {
       cardID: this.$extras.cardID,
       phoneNumber: this.$extras.phoneNumber,
       role: this.$extras.role,
+      parentId: this.$extras.parent_id,
+      workerId: this.$extras.worker_id,
     }
   }
 }

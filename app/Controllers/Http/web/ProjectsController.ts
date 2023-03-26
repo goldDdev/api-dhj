@@ -12,6 +12,9 @@ export default class ProjectsController {
       await Project.query()
         .select(['id', 'name', 'companyName', 'status', 'duration', 'finishAt', 'startAt'])
         .orderBy('id', 'desc')
+        .if(request.input('name'), (query) =>
+          query.andWhereILike('name', `%${request.input('name')}%`)
+        )
         .paginate(request.input('page', 1), request.input('perPage', 15))
     )
   }
@@ -230,7 +233,7 @@ export default class ProjectsController {
         'INNER JOIN project_workers ON project_absents.project_id = project_workers.project_id AND project_absents.employee_id = project_workers.employee_id'
       )
       .joinRaw(
-        'LEFT JOIN (SELECT name, parent.role, parent.id FROM employees INNER JOIN project_workers AS parent ON employees.id = parent.employee_id) AS emp ON emp.id = project_workers.parent_id'
+        'INNER JOIN (SELECT name, parent.role, parent.id FROM employees INNER JOIN project_workers AS parent ON employees.id = parent.employee_id) AS emp ON emp.id = project_workers.parent_id'
       )
       .where('project_absents.project_id', request.param('id', 0))
       .orderBy(request.input('orderBy', 'absent_at'), request.input('order', 'asc'))
@@ -258,16 +261,20 @@ export default class ProjectsController {
           'employees.card_id as cardID',
           'employees.phone_number as phoneNumber',
           'project_workers.role',
+          'parent_id',
+          'project_workers.id AS worker_id',
           'project_absents.project_id'
         )
         .join('employees', 'employees.id', '=', 'project_absents.employee_id')
         .joinRaw(
-          'INNER JOIN project_workers ON employees.id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+          'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
         )
         .preload('replaceEmployee')
         .where('project_absents.project_id', request.param('id', 0))
-        .andWhere('project_workers.parent_id', request.param('parent', 0))
         .andWhere('absent_at', request.input('date', moment().format('yyyy-MM-DD')))
+        .andWhere('project_workers.parent_id', request.param('parent', 0))
+        .orWhere('project_workers.id', request.param('parent', 0))
+        .orderBy('parent_id', 'desc')
 
       const summary = model.reduce(
         (p, n) => ({
@@ -282,7 +289,7 @@ export default class ProjectsController {
       return response.ok({
         data: {
           absentAt: request.input('date', moment().format('yyyy-MM-DD')),
-          projectId: +request.param('project', 0),
+          projectId: +request.param('id', 0),
           parentId: +request.param('parent', 0),
           summary,
           members: model.map((v) =>

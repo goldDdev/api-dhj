@@ -45,6 +45,10 @@ Route.group(() => {
     Route.delete('/:id/overtime', 'ProjectOvertimeController.destroy')
   }).prefix('project')
 
+  Route.group(() => {
+    Route.get('/', 'AbsentController.index')
+  }).prefix('absent')
+
   Route.resource('boq', 'BoqsController').except(['create', 'edit'])
   Route.resource('user', 'UsersController').except(['create', 'edit'])
 })

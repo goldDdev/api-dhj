@@ -15,6 +15,9 @@ export default class ProjectsController {
         .if(request.input('name'), (query) =>
           query.andWhereILike('name', `%${request.input('name')}%`)
         )
+        .if(request.input('status'), (query) => query.andWhere('status', request.input('status')))
+
+        .orderBy(request.input('orderBy', 'id'), request.input('order', 'desc'))
         .paginate(request.input('page', 1), request.input('perPage', 15))
     )
   }

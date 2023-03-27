@@ -48,6 +48,7 @@ Route.group(() => {
       Route.get('/', 'AbsentController.index')
     }).prefix('absent')
 
+    Route.get('/tracking', 'TrackingController.index')
     Route.get('/current', 'UsersController.current')
     Route.post('/logout', 'AuthController.logout')
 

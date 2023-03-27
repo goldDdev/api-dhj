@@ -35,6 +35,8 @@ Route.group(() => {
     Route.group(() => {
       Route.post('/', 'TrackingController.create')
     }).prefix('tracking')
+
+    Route.get('/settings', 'SettingController.index')
   }).middleware(['auth'])
 })
   .namespace('App/Controllers/Http/mobile')

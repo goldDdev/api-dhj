@@ -62,7 +62,7 @@ export default class AbsentController {
       )
       .join('employees', 'employees.id', '=', 'project_absents.employee_id')
       .joinRaw(
-        'INNER JOIN project_workers ON employees.id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+        'INNER JOIN project_workers ON  project_workers.employee_id = project_absents.employee_id AND project_absents.project_id = project_workers.project_id'
       )
       .preload('replaceEmployee')
       .where('project_absents.project_id', request.param('id', 0))
@@ -95,89 +95,93 @@ export default class AbsentController {
   public async addCome({ auth, request, response }: HttpContextContract) {
     try {
       const currentDate = moment().format('yyyy-MM-DD')
-
       const work = await ProjectWorker.query()
         .where({
           project_id: request.input('projectId'),
           employee_id: auth.user?.employeeId,
           status: ProjectWorkerStatus.ACTIVE,
         })
-        .first()
+        .firstOrFail()
 
       const inputWorkers = request.input('workers', [])
       const workers = await ProjectWorker.query()
         .where({
           project_id: request.input('projectId'),
-          parent_id: work?.id || 0,
+          parent_id: work.id,
           status: ProjectWorkerStatus.ACTIVE,
         })
         .whereIn('id', inputWorkers)
 
-      const [{ count }] = await Database.query()
-        .from('project_absents')
+      const { hour, minute } = (await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.START_TIME)
+        .first()) || { hour: 7, minute: 0 }
+
+      const { value: latePrice } = (await Database.from('settings')
+        .where('code', SettingCode.LATETIME_PRICE_PER_MINUTE)
+        .first()) || { value: 0 }
+
+      const comeAt = DateTime.local({ zone: 'Asia/Jakarta' }).toFormat('HH:mm')
+      const startWork = DateTime.fromObject(
+        { hour: hour, minute: minute },
+        { zone: 'Asia/Jakarta' }
+      )
+
+      const lateDuration = Math.round(startWork.diffNow('minutes').minutes)
+
+      const leadWork = await ProjectAbsent.query()
         .joinRaw(
           'INNER JOIN project_workers ON project_workers.employee_id = project_absents.employee_id AND project_absents.project_id = project_workers.project_id'
         )
-        .where('project_absents.project_id', request.input('projectId'))
-        .andWhere('project_workers.parent_id', work?.id || 0)
+        .where('project_absents.employee_id', auth.user?.employeeId || 0)
+        .andWhere('project_absents.project_id', request.input('projectId'))
+        .andWhere('project_workers.id', work.id)
         .andWhere('absent_at', currentDate)
-        .count('*')
+        .first()
 
-      if (+count === 0) {
-        const model = auth.user!.employee.work
-        await model?.load('members', (query) => {
-          query.where('status', ProjectWorkerStatus.ACTIVE)
+      if (!leadWork) {
+        await ProjectAbsent.create({
+          absentAt: currentDate,
+          absentBy: auth.user?.employeeId,
+          projectId: request.input('projectId'),
+          employeeId: auth.user?.employeeId,
+          latitude: request.input('latitude', 0),
+          longitude: request.input('longitude', 0),
+          comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
+          lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
+          latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
+          absent: request.input('absent', 'P'),
         })
-
-        const { hour, minute } = (await Database.from('settings')
-          .select(
-            Database.raw(
-              'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
-            )
-          )
-          .where('code', SettingCode.START_TIME)
-          .first()) || { hour: 7, minute: 0 }
-
-        const { value: latePrice } = (await Database.from('settings')
-          .where('code', SettingCode.LATETIME_PRICE_PER_MINUTE)
-          .first()) || { value: 0 }
-
-        const comeAt = DateTime.local({ zone: 'Asia/Jakarta' }).toFormat('HH:mm')
-        const startWork = DateTime.fromObject(
-          { hour: hour, minute: minute },
-          { zone: 'Asia/Jakarta' }
-        )
-
-        const lateDuration = Math.round(startWork.diffNow('minutes').minutes)
-
-        await ProjectAbsent.createMany(
-          (inputWorkers.length > 0 ? workers : [])
-            .map((value) => ({
-              absentAt: currentDate,
-              absentBy: auth.user?.employeeId,
-              projectId: request.input('projectId'),
-              employeeId: value.employeeId,
-              latitude: request.input('latitude', 0),
-              longitude: request.input('longitude', 0),
-              comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
-              lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
-              latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
-              absent: request.input('absent', 'P'),
-            }))
-            .concat({
-              absentAt: currentDate,
-              absentBy: auth.user?.employeeId,
-              projectId: request.input('projectId'),
-              employeeId: work!.employeeId,
-              latitude: request.input('latitude', 0),
-              longitude: request.input('longitude', 0),
-              comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
-              lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
-              latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
-              absent: request.input('absent', 'P'),
-            })
-        )
       }
+
+      workers.forEach(async (value) => {
+        const findWork = await ProjectAbsent.query()
+          .joinRaw(
+            'INNER JOIN project_workers ON project_workers.employee_id = project_absents.employee_id AND project_absents.project_id = project_workers.project_id'
+          )
+          .andWhere('project_workers.id', work.id)
+          .andWhere('absent_at', currentDate)
+          .first()
+
+        if (!findWork) {
+          await ProjectAbsent.create({
+            absentAt: currentDate,
+            absentBy: auth.user?.employeeId,
+            projectId: request.input('projectId'),
+            employeeId: value.employeeId,
+            latitude: request.input('latitude', 0),
+            longitude: request.input('longitude', 0),
+            comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
+            lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
+            latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
+            absent: request.input('absent', 'P'),
+          })
+        }
+      })
 
       return response.noContent()
     } catch (error) {

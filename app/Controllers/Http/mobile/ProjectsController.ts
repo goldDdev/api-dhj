@@ -269,8 +269,4 @@ export default class ProjectsController {
 
     return response.send(query)
   }
-
-  // public async test({ auth, response, request }: HttpContextContract) {
-  //   return response.ok(auth.user)
-  // }
 }

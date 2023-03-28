@@ -4,11 +4,16 @@ import Tracking from 'App/Models/Tracking'
 
 export default class TrackingsController {
   public async index({ request, response }: HttpContextContract) {
-    // NOTE : list tracking map all project employee, by date by project to show on web map
+    if (!request.input('projectId') || !request.input('date')) return response.send({ data: [] })
     const tracks = await Tracking.query()
       .where('projectId', request.input('projectId'))
       .where(Database.raw('DATE(created_at)'), request.input('date'))
-    // .preload('user')
-    return response.send(tracks)
+
+    // TODO : need send center location => should be coordinate project
+
+    return response.send({
+      data: tracks,
+      meta: { center: { latitude: '1.598333', longitude: '101.431827' } },
+    })
   }
 }

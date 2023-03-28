@@ -185,7 +185,7 @@ export default class AbsentController {
         }
       })
 
-      return response.ok(workers)
+      return response.noContent()
     } catch (error) {
       Logger.info(error)
       return response.notFound({ code: codeError.notFound, type: 'notFound' })

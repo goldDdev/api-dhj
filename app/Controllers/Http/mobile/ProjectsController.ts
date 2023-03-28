@@ -68,6 +68,7 @@ export default class ProjectsController {
 
       await model.load('workers', (query) => {
         query
+          .select('*', 'project_workers.id')
           .join('employees', 'employees.id', '=', 'project_workers.employee_id')
           .andWhere('project_workers.parent_id', work?.id || 0)
       })

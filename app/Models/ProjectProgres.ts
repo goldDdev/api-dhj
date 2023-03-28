@@ -32,4 +32,12 @@ export default class ProjectProgres extends BaseModel {
 
   @column({ columnName: 'aproved_by', serializeAs: 'aprovedBy', consume: (value) => +value })
   public aprovedBy: number
+
+  public serializeExtras() {
+    return {
+      name: this.$extras.name,
+      typeUnit: this.$extras.type_unit,
+      submitedName: this.$extras.submited_name,
+    }
+  }
 }

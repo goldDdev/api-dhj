@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, HasMany, belongsTo, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import Project from './Project'
 import Boq from './Boq'
+import ProjectProgres from './ProjectProgres'
 
 export default class ProjectBoq extends BaseModel {
   public static table = 'project_boqs'
@@ -54,4 +55,7 @@ export default class ProjectBoq extends BaseModel {
     foreignKey: 'boqId',
   })
   public boq: BelongsTo<typeof Boq>
+
+  @hasMany(() => ProjectProgres, { foreignKey: 'projectBoqId', localKey: 'id' })
+  public progress: HasMany<typeof ProjectProgres>
 }

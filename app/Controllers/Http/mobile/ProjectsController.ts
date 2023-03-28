@@ -8,6 +8,7 @@ import moment from 'moment'
 import Logger from '@ioc:Adonis/Core/Logger'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
+import ProjectBoq from 'App/Models/ProjectBoq'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
@@ -189,26 +190,23 @@ export default class ProjectsController {
   public async progres({ auth, response, request }: HttpContextContract) {
     const trx = await Database.transaction()
     try {
-      await auth.use('api').authenticate()
-      const currentUser = auth.use('api').user!
       const payload = await request.validate({
         schema: schema.create({
-          projectId: schema.number(),
-          boqId: schema.number(),
+          id: schema.number(),
           progres: schema.number(),
         }),
       })
-      const { projectId, boqId, progres } = payload
       await ProjectProgres.create(
         {
-          projectId,
-          projectBoqId: boqId,
-          progres,
-          submitedProgres: progres,
-          submitedBy: currentUser.id,
+          projectId: request.param('id'),
+          projectBoqId: payload.id,
+          progres: payload.progres,
+          submitedProgres: payload.progres,
+          submitedBy: auth.user?.id,
         },
         { client: trx }
       )
+
       await trx.commit()
       return response.status(204)
     } catch (error) {
@@ -216,6 +214,60 @@ export default class ProjectsController {
       console.error(error)
       return response.notFound({ code: codeError.badRequest, type: 'Server error' })
     }
+  }
+
+  public async listProgres({ response, request }: HttpContextContract) {
+    const query = await ProjectProgres.query()
+      .select(
+        'project_progres.id',
+        'project_boqs.name',
+        'project_boqs.type_unit',
+        'progres',
+        'submited_progres',
+        'project_progres.created_at'
+      )
+      .join('project_boqs', 'project_boqs.id', 'project_progres.project_boq_id')
+      .join('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
+      .if(request.input('name'), (query) => {
+        query.whereILike('project_boqs.name', `%${request.input('name')}%`)
+      })
+      .orderBy(request.input('orderBy', 'project_progres.id'), request.input('order', 'desc'))
+
+    return response.ok(query)
+  }
+
+  public async listBoq({ response, request }: HttpContextContract) {
+    const query = await ProjectBoq.query()
+      .select(
+        'project_boqs.name',
+        'project_boqs.id',
+        'project_boqs.boq_id',
+        'price',
+        'unit',
+        'project_boqs.type_unit',
+        'additional_unit',
+        'additionalPrice',
+        'project_boqs.updated_at'
+      )
+      .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
+      .where('project_id', request.param('id'))
+      .if(request.input('name'), (query) => {
+        query.whereILike('project_boqs.name', `%${request.input('name')}%`)
+      })
+      .if(
+        request.input('orderBy'),
+        (query) => {
+          query.orderBy('project_boqs.name', request.input('order', 'asc'))
+        },
+        (query) => {
+          query.orderBy(
+            `project_boqs.${request.input('orderBy', 'id')}`,
+            request.input('order', 'asc')
+          )
+        }
+      )
+
+    return response.send(query)
   }
 
   // public async test({ auth, response, request }: HttpContextContract) {

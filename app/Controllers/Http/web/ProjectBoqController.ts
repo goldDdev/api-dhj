@@ -132,6 +132,33 @@ export default class ProjectBoqController {
     }
   }
 
+  public async updateValue({ request, response }: HttpContextContract) {
+    try {
+      const payload = await request.validate({
+        schema: schema.create({
+          id: schema.number(),
+          unit: schema.number.optional(),
+        }),
+      })
+
+      const model = await ProjectBoq.findOrFail(payload.id)
+      if (!model) {
+        return response.notFound({
+          error: 'id',
+        })
+      }
+
+      await model.merge({ unit: payload.unit }).save()
+      await model.refresh()
+
+      return response.created({
+        data: model.serialize(),
+      })
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
   public async destroy({ request, response }: HttpContextContract) {
     try {
       const model = await ProjectBoq.findOrFail(request.param('id'))

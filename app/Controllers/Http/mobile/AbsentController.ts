@@ -94,7 +94,9 @@ export default class AbsentController {
 
   public async addCome({ auth, request, response }: HttpContextContract) {
     try {
-      const currentDate = moment().format('yyyy-MM-DD')
+      const currentDate = moment(DateTime.now().setZone('Asia/Jakarta').toISO()).format(
+        'yyyy-MM-DD'
+      )
       const work = await ProjectWorker.query()
         .where({
           project_id: request.input('projectId'),
@@ -163,7 +165,7 @@ export default class AbsentController {
           .joinRaw(
             'INNER JOIN project_workers ON project_workers.employee_id = project_absents.employee_id AND project_absents.project_id = project_workers.project_id'
           )
-          .andWhere('project_workers.id', work.id)
+          .andWhere('project_workers.id', value.id)
           .andWhere('absent_at', currentDate)
           .first()
 
@@ -183,7 +185,7 @@ export default class AbsentController {
         }
       })
 
-      return response.noContent()
+      return response.ok(workers)
     } catch (error) {
       Logger.info(error)
       return response.notFound({ code: codeError.notFound, type: 'notFound' })

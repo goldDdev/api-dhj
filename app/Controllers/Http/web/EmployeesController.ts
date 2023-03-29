@@ -196,4 +196,10 @@ export default class EmployeesController {
       return response.unprocessableEntity({ error })
     }
   }
+
+  public async project({ response, request }: HttpContextContract) {
+    const query = await ProjectWorker.query()
+      .orderBy('id', 'desc')
+      .paginate(request.input('page', 1), request.input('perPage', 15))
+  }
 }

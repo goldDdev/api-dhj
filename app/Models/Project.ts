@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseModel, HasMany, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import ProjectWorker from './ProjectWorker'
 import ProjectAbsent from './ProjectAbsent'
+import ProjectBoq from './ProjectBoq'
 
 export enum ProjectStatus {
   DRAFT = 'DRAFT',
@@ -76,6 +77,9 @@ export default class Project extends BaseModel {
 
   @hasMany(() => ProjectAbsent, { foreignKey: 'projectId', localKey: 'id' })
   public absents: HasMany<typeof ProjectAbsent>
+
+  @hasMany(() => ProjectBoq, { foreignKey: 'projectId', localKey: 'id' })
+  public boqs: HasMany<typeof ProjectBoq>
 
   public serializeExtras() {
     return {

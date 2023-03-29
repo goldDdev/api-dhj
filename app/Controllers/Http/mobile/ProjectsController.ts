@@ -74,6 +74,8 @@ export default class ProjectsController {
           .andWhere('project_workers.parent_id', work?.id || 0)
       })
 
+      await model.load('boqs')
+
       const models = await ProjectAbsent.query()
         .select(
           '*',

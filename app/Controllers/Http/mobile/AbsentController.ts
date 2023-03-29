@@ -185,7 +185,7 @@ export default class AbsentController {
         }
       })
 
-      return response.noContent()
+      return response.ok({ currentDate })
     } catch (error) {
       Logger.info(error)
       return response.notFound({ code: codeError.notFound, type: 'notFound' })
@@ -216,7 +216,8 @@ export default class AbsentController {
         )
         .where('project_absents.absent_at', currentDate)
         .andWhere('project_absents.project_id', request.input('projectId'))
-        .andWhere('project_workers.parent_id', work?.id || 0)
+        .andWhere('project_workers.id', work?.id || 0)
+        .orWhere('project_workers.paren_id', work?.id || 0)
         .andWhereNotNull('absent')
         .first()
 

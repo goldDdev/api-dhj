@@ -94,7 +94,7 @@ export default class AbsentController {
 
   public async addCome({ auth, request, response }: HttpContextContract) {
     try {
-      const currentDate = DateTime.now().setZone('Asia/Jakarta').toFormat('yyyy-MM-DD')
+      const currentDate = DateTime.now().setZone('Asia/Jakarta').toFormat('yyyy-MM-dd')
       const work = await ProjectWorker.query()
         .where({
           project_id: request.input('projectId'),

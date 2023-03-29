@@ -10,7 +10,16 @@ export default class ProjectsController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
       await Project.query()
-        .select(['id', 'name', 'companyName', 'status', 'duration', 'finishAt', 'startAt'])
+        .select([
+          'id',
+          'name',
+          'companyName',
+          'status',
+          'duration',
+          'location',
+          'finishAt',
+          'startAt',
+        ])
         .orderBy('id', 'desc')
         .if(request.input('name'), (query) =>
           query.andWhereILike('name', `%${request.input('name')}%`)

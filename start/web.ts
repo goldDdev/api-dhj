@@ -56,7 +56,7 @@ Route.group(() => {
 
     Route.resource('boq', 'BoqsController').except(['create', 'edit'])
     Route.resource('user', 'UsersController').except(['create', 'edit'])
-  }).middleware(['auth'])
+  }).middleware(['auth', 'tz'])
 })
   .namespace('App/Controllers/Http/web')
   .prefix('web')

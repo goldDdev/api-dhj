@@ -3,6 +3,8 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Employee, { EmployeeType } from 'App/Models/Employee'
+import Project from 'App/Models/Project'
+import ProjectAbsent from 'App/Models/ProjectAbsent'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 
 export default class EmployeesController {
@@ -198,8 +200,44 @@ export default class EmployeesController {
   }
 
   public async project({ response, request }: HttpContextContract) {
-    const query = await ProjectWorker.query()
-      .orderBy('id', 'desc')
+    const query = await Project.query()
+      .select('*', 'projects.id', 'project_workers.status')
+      .join('project_workers', 'projects.id', 'project_workers.project_id')
+      .where({ employee_id: request.param('id', 0) })
+      .orderBy('projects.id', 'desc')
       .paginate(request.input('page', 1), request.input('perPage', 15))
+
+    return response.ok(
+      query.serialize({
+        fields: {
+          pick: ['id', 'name', 'status', 'companyName', 'location'],
+        },
+      })
+    )
+  }
+
+  public async absent({ response, request }: HttpContextContract) {
+    const query = await ProjectAbsent.query()
+      .select(
+        'project_absents.id',
+        'project_absents.project_id',
+        'projects.name AS project_name',
+        'projects.status AS project_status',
+        'projects.company_name AS project_company',
+        'projects.location AS project_location',
+        'project_absents.absent_at',
+        'project_absents.come_at',
+        'project_absents.close_at',
+        'project_absents.late_duration',
+        'project_absents.late_price',
+        'project_absents.duration',
+        'project_absents.absent'
+      )
+      .join('projects', 'projects.id', 'project_absents.project_id')
+      .where({ employee_id: request.param('id', 0) })
+      .orderBy('project_absents.id', 'desc')
+      .paginate(request.input('page', 1), request.input('perPage', 15))
+
+    return response.ok(query.serialize())
   }
 }

@@ -10,6 +10,8 @@ Route.group(() => {
       Route.put('/:id/detail', 'EmployeesController.update')
       Route.put('/status', 'EmployeesController.status')
       Route.get('/:id/detail', 'EmployeesController.view')
+      Route.get('/:id/project', 'EmployeesController.project')
+      Route.get('/:id/absent', 'EmployeesController.absent')
     }).prefix('employee')
 
     Route.group(() => {

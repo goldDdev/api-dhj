@@ -70,7 +70,9 @@ export default class ProjectsController {
         query
           .select('*', 'project_workers.id')
           .join('employees', 'employees.id', '=', 'project_workers.employee_id')
-          .andWhere('project_workers.parent_id', work?.id || 0)
+          .andWhereRaw('(project_workers.id = :id OR project_workers.parent_id = :id)', {
+            id: auth.user!.employee.work.id,
+          })
       })
 
       await model.load('boqs')

@@ -70,9 +70,7 @@ export default class ProjectsController {
         query
           .select('*', 'project_workers.id')
           .join('employees', 'employees.id', '=', 'project_workers.employee_id')
-          .andWhereRaw('(project_workers.id = :id OR project_workers.parent_id = :id)', {
-            id: auth.user!.employee.work.id,
-          })
+          .andWhere('project_workers.parent_id', work?.id || 0)
       })
 
       await model.load('boqs')
@@ -90,14 +88,15 @@ export default class ProjectsController {
         )
         .join('employees', 'employees.id', '=', 'project_absents.employee_id')
         .joinRaw(
-          'INNER JOIN project_workers ON employees.id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+          'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
         )
         .preload('replaceEmployee')
         .where('project_absents.project_id', request.param('id', 0))
-        .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
-        .andWhere('absent_at', now)
-        .orWhere('project_workers.id', auth.user!.employee.work.id)
 
+        .andWhere('absent_at', now)
+        .andWhereRaw('(project_workers.id = :id OR project_workers.parent_id = :id)', {
+          id: work?.id || 0,
+        })
       const summary = models.reduce(
         (p, n) => ({
           present: p.present + Number(n.absent === AbsentType.P),

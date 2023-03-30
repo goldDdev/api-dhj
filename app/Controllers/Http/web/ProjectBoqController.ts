@@ -3,6 +3,7 @@ import { schema } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Boq from 'App/Models/Boq'
 import ProjectBoq from 'App/Models/ProjectBoq'
+import ProjectProgres from 'App/Models/ProjectProgres'
 
 export default class ProjectBoqController {
   public async index({ response, request }: HttpContextContract) {
@@ -16,9 +17,17 @@ export default class ProjectBoqController {
         'project_boqs.type_unit',
         'additional_unit',
         'additionalPrice',
-        'project_boqs.updated_at'
+        'project_boqs.updated_at',
+        Database.raw('COALESCE(progres.total_progres, 0)::int AS total_progres'),
+        Database.raw('COALESCE(pending.total_pending, 0)::int AS total_pending')
       )
       .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
+      .joinRaw(
+        'LEFT OUTER JOIN (SELECT SUM(progres) as total_progres, project_boq_id FROM project_progres WHERE aproved_by IS NOT NULL GROUP BY project_boq_id) AS progres ON progres.project_boq_id = project_boqs.id'
+      )
+      .joinRaw(
+        'LEFT OUTER JOIN (SELECT COUNT(*) as total_pending, project_boq_id FROM project_progres WHERE aproved_by IS NULL GROUP BY project_boq_id) AS pending ON pending.project_boq_id = project_boqs.id'
+      )
       .where('project_id', request.param('id'))
       .if(request.input('name'), (query) => {
         query.whereILike('project_boqs.name', `%${request.input('name')}%`)
@@ -29,7 +38,10 @@ export default class ProjectBoqController {
           query.orderBy('project_boqs.name', request.input('order', 'asc'))
         },
         (query) => {
-          query.orderBy(`project_boqs.${request.input('orderBy')}`, request.input('order', 'asc'))
+          query.orderBy(
+            `project_boqs.${request.input('orderBy', 'id')}`,
+            request.input('order', 'asc')
+          )
         }
       )
 
@@ -164,6 +176,33 @@ export default class ProjectBoqController {
       const model = await ProjectBoq.findOrFail(request.param('id'))
       await model.delete()
       return response.noContent()
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async confirm({ auth, request, response }: HttpContextContract) {
+    try {
+      const payload = await request.validate({
+        schema: schema.create({
+          id: schema.number(),
+          unit: schema.number.optional(),
+        }),
+      })
+
+      const model = await ProjectProgres.findOrFail(payload.id)
+      if (!model) {
+        return response.notFound({
+          error: 'id',
+        })
+      }
+
+      await model.merge({ aprovedBy: auth.user!.id }).save()
+      await model.refresh()
+
+      return response.created({
+        data: model.serialize({}),
+      })
     } catch (error) {
       return response.unprocessableEntity({ error })
     }

@@ -4,7 +4,6 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import Project from 'App/Models/Project'
 import ProjectProgres from 'App/Models/ProjectProgres'
 import codeError from 'Config/codeError'
-import moment from 'moment'
 import Logger from '@ioc:Adonis/Core/Logger'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
@@ -39,7 +38,7 @@ export default class ProjectsController {
     return response.send(query.serialize().data)
   }
 
-  public async view({ auth, request, response }: HttpContextContract) {
+  public async view({ auth, request, now, response }: HttpContextContract) {
     try {
       const work = await ProjectWorker.query()
         .where({
@@ -94,7 +93,8 @@ export default class ProjectsController {
         .preload('replaceEmployee')
         .where('project_absents.project_id', request.param('id', 0))
         .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
-        .andWhere('absent_at', request.input('date', moment().format('yyyy-MM-DD')))
+        .andWhere('absent_at', now)
+        .orWhere('project_workers.id', auth.user!.employee.work.id)
 
       const summary = models.reduce(
         (p, n) => ({
@@ -111,7 +111,7 @@ export default class ProjectsController {
         ...model.serialize(),
         absents: models,
         summary,
-        absentAt: models.length > 0 ? moment().format('yyyy-MM-DD') : null,
+        absentAt: models.length > 0 ? now : null,
       })
     } catch (error) {
       Logger.info(error)
@@ -124,7 +124,7 @@ export default class ProjectsController {
     }
   }
 
-  public async absent({ response, request }: HttpContextContract) {
+  public async absent({ response, request, year, month }: HttpContextContract) {
     const query = await Database.from('project_absents')
       .select(
         'project_workers.parent_id as parentId',
@@ -146,10 +146,10 @@ export default class ProjectsController {
       .orderBy(request.input('orderBy', 'absent_at'), request.input('order', 'asc'))
       .groupBy('absent_at', 'project_workers.parent_id', 'emp.name', 'emp.role')
       .andHavingRaw('EXTRACT(MONTH FROM absent_at) = :month ', {
-        month: request.input('month', moment().month() + 1),
+        month: request.input('month', month),
       })
       .andHavingRaw('EXTRACT(YEAR FROM absent_at) = :year ', {
-        year: request.input('year', moment().year()),
+        year: request.input('year', year),
       })
 
     return response.ok({

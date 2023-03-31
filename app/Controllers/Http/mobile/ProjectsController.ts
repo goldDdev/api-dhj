@@ -8,6 +8,7 @@ import Logger from '@ioc:Adonis/Core/Logger'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import ProjectBoq from 'App/Models/ProjectBoq'
+import { DateTime } from 'luxon'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
@@ -190,32 +191,46 @@ export default class ProjectsController {
     }
   }
 
-  public async progres({ auth, response, request }: HttpContextContract) {
-    const trx = await Database.transaction()
+  public async progres({ auth, now, response, request }: HttpContextContract) {
+    let isAvailable = false
+
     try {
       const payload = await request.validate({
         schema: schema.create({
           id: schema.number(),
           progres: schema.number(),
+          date: schema.string.optional(),
         }),
       })
-      await ProjectProgres.create(
-        {
+
+      const last = await ProjectProgres.query()
+        .where({
+          project_id: request.param('id'),
+          project_boq_id: payload.id,
+        })
+        .andWhere('progres_at', request.input('date', now))
+        .first()
+
+      if (!last) {
+        isAvailable = true
+      }
+
+      if (isAvailable) {
+        await ProjectProgres.create({
           projectId: request.param('id'),
           projectBoqId: payload.id,
           progres: payload.progres,
           submitedProgres: payload.progres,
           submitedBy: auth.user?.id,
-        },
-        { client: trx }
-      )
+          progresAt: request.input('date', now),
+        })
+        return response.noContent()
+      }
 
-      await trx.commit()
-      return response.status(204)
+      return response.unprocessableEntity({ code: codeError.entity, type: 'exists' })
     } catch (error) {
-      await trx.rollback()
-      console.error(error)
-      return response.notFound({ code: codeError.badRequest, type: 'Server error' })
+      Logger.info(error)
+      return response.notFound({ code: codeError.badRequest, type: 'badRequest' })
     }
   }
 
@@ -226,6 +241,7 @@ export default class ProjectsController {
         'project_boqs.name',
         'project_boqs.type_unit',
         'progres',
+        'progres_at',
         'submited_progres',
         'project_progres.created_at'
       )
@@ -233,6 +249,9 @@ export default class ProjectsController {
       .join('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
       .if(request.input('name'), (query) => {
         query.whereILike('project_boqs.name', `%${request.input('name')}%`)
+      })
+      .if(request.input('date'), (query) => {
+        query.andWhere('project_progres.progres_at', request.input('date'))
       })
       .orderBy(request.input('orderBy', 'project_progres.id'), request.input('order', 'desc'))
 

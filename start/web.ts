@@ -52,6 +52,13 @@ Route.group(() => {
       Route.get('/', 'AbsentController.index')
     }).prefix('absent')
 
+    Route.group(() => {
+      Route.get('/:id/all', 'ProjectProgresController.all')
+      Route.put('/', 'ProjectProgresController.update')
+      Route.put('/confirm', 'ProjectProgresController.confirm')
+      Route.delete('/:id', 'ProjectProgresController.delete')
+    }).prefix('progres')
+
     Route.get('/tracking', 'TrackingController.index')
     Route.get('/current', 'UsersController.current')
     Route.post('/logout', 'AuthController.logout')

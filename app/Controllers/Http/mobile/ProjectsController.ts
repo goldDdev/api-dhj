@@ -74,9 +74,11 @@ export default class ProjectsController {
       })
 
       await model.load('boqs', (query) => {
-        query.joinRaw(
-          "LEFT JOIN (SELECT TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at,progres,project_boq_id FROM project_progres ORDER BY progres_at DESC) AS progres ON progres.project_boq_id = project_boqs.id"
-        )
+        query
+          .select('*', 'project_boqs.id')
+          .joinRaw(
+            "LEFT JOIN (SELECT TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at,progres,project_boq_id FROM project_progres ORDER BY progres_at DESC) AS progres ON progres.project_boq_id = project_boqs.id"
+          )
       })
 
       const models = await ProjectAbsent.query()

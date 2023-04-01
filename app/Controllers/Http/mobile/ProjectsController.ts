@@ -278,11 +278,14 @@ export default class ProjectsController {
         'price',
         'unit',
         'project_boqs.type_unit',
-        'additional_unit',
-        'additionalPrice',
-        'project_boqs.updated_at'
+        'project_boqs.updated_at',
+        'progres.progres_at',
+        'progres.progres'
       )
       .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
+      .joinRaw(
+        "LEFT JOIN (SELECT TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at,progres,project_boq_id FROM project_progres ORDER BY progres_at DESC) AS progres ON progres.project_boq_id = project_boqs.id"
+      )
       .where('project_id', request.param('id'))
       .if(request.input('name'), (query) => {
         query.whereILike('project_boqs.name', `%${request.input('name')}%`)

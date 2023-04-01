@@ -240,4 +240,62 @@ export default class EmployeesController {
 
     return response.ok(query.serialize())
   }
+
+  public async destroy({ request, response }: HttpContextContract) {
+    try {
+      const model = await Employee.findOrFail(request.param('id'))
+      await model.delete()
+      return response.noContent()
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async validation({ auth, request, response }: HttpContextContract) {
+    try {
+      await request.validate({
+        schema: schema.create({
+          id: schema.number.optional(),
+          name: schema.string([rules.minLength(3)]),
+          phoneNumber: schema.string([
+            rules.minLength(10),
+            rules.unique({
+              table: 'employees',
+              column: 'phone_number',
+              whereNot: {
+                id: request.input('id', 0),
+              },
+            }),
+          ]),
+          cardID: schema.string([
+            rules.minLength(8),
+            rules.unique({
+              table: 'employees',
+              column: 'card_id',
+              whereNot: {
+                id: request.input('id', 0),
+              },
+            }),
+          ]),
+          role: schema.string(),
+          hourlyWages: schema.number.optional(),
+          salary: schema.number.optional(),
+          email: schema.string.optional([
+            rules.unique({
+              table: 'users',
+              column: 'email',
+              whereNot: {
+                email: null,
+                employee_id: request.input('id', 0),
+              },
+            }),
+          ]),
+        }),
+      })
+
+      return response.noContent()
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
 }

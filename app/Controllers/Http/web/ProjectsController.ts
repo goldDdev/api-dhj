@@ -235,24 +235,31 @@ export default class ProjectsController {
         'project_workers.id as parentId',
         'employees.name',
         'employees.role',
-        Database.raw('TO_CHAR(absent_at, \'YYYY-MM-DD\') as "absentAt"'),
+        Database.raw('TO_CHAR(project_absents.absent_at, \'YYYY-MM-DD\') as "absentAt"'),
         Database.raw('count(*)::int as total'),
-        Database.raw("sum(case when absent = 'P' then 1 else 0 end)::int as present"),
-        Database.raw("sum(case when absent = 'A' then 1 else 0 end)::int as absent"),
-        Database.raw('sum(case when absent = NULL then 1 else 0 end)::int as "noAbsent"')
+        Database.raw("sum(case when pwa.absent = 'P' then 1 else 0 end)::int as present"),
+        Database.raw("sum(case when pwa.absent = 'A' then 1 else 0 end)::int as absent"),
+        Database.raw('sum(case when pwa.absent = NULL then 1 else 0 end)::int as "noAbsent"')
       )
       .joinRaw(
         'INNER JOIN project_workers ON project_absents.project_id = project_workers.project_id AND project_absents.employee_id = project_workers.employee_id'
       )
       .join('employees', 'employees.id', 'project_absents.employee_id')
-
+      .joinRaw(
+        'LEFT OUTER JOIN (SELECT *, pw.id as pwid FROM project_absents pa INNER JOIN project_workers pw ON pa.project_id = pw.project_id AND pa.employee_id = pw.employee_id) AS pwa ON pwa.parent_id = project_workers.id OR pwa.pwid = project_workers.id'
+      )
       .where('project_absents.project_id', request.param('id', 0))
-      .orderBy(request.input('orderBy', 'absent_at'), request.input('order', 'asc'))
-      .groupBy('absent_at', 'project_workers.id', 'employees.name', 'employees.role')
-      .andHavingRaw('EXTRACT(MONTH FROM absent_at) = :month ', {
+      .andWhereNull('project_workers.parent_id')
+      .groupBy(
+        'project_absents.absent_at',
+        'project_workers.id',
+        'employees.name',
+        'employees.role'
+      )
+      .andHavingRaw('EXTRACT(MONTH FROM project_absents.absent_at) = :month ', {
         month: request.input('month', month),
       })
-      .andHavingRaw('EXTRACT(YEAR FROM absent_at) = :year ', {
+      .andHavingRaw('EXTRACT(YEAR FROM project_absents.absent_at) = :year ', {
         year: request.input('year', year),
       })
 
@@ -321,5 +328,47 @@ export default class ProjectsController {
   public async confirmProgres({ request, response }: HttpContextContract) {
     console.log(request, response)
     // TODO : level koordinator bisa aprove/reject/edit inputan progress project boq dari bawahan nya
+  }
+
+  public async destroy({ request, response }: HttpContextContract) {
+    try {
+      const model = await Project.findOrFail(request.param('id'))
+      await model.delete()
+      return response.noContent()
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async validation({ request, response }: HttpContextContract) {
+    try {
+      await request.validate({
+        schema: schema.create({
+          name: schema.string(),
+          companyName: schema.string(),
+          noSpk: schema.string.optional([
+            rules.unique({
+              table: 'projects',
+              column: 'no_spk',
+              whereNot: {
+                id: request.input('id', 0),
+              },
+            }),
+          ]),
+          latitude: schema.number.optional(),
+          longitude: schema.number.optional(),
+          status: schema.enum.optional(Object.keys(ProjectStatus)),
+          contact: schema.string.optional(),
+          startAt: schema.date.optional({}, [rules.afterOrEqual('today')]),
+          finishAt: schema.date.optional({}, [rules.afterOrEqual('today')]),
+          note: schema.string.optional(),
+          location: schema.string.optional(),
+        }),
+      })
+
+      return response.noContent()
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
   }
 }

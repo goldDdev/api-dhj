@@ -8,7 +8,6 @@ import Logger from '@ioc:Adonis/Core/Logger'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import ProjectBoq from 'App/Models/ProjectBoq'
-import { DateTime } from 'luxon'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
@@ -74,7 +73,11 @@ export default class ProjectsController {
           .andWhere('project_workers.parent_id', work?.id || 0)
       })
 
-      await model.load('boqs')
+      await model.load('boqs', (query) => {
+        query.joinRaw(
+          "LEFT JOIN (SELECT TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at,progres,project_boq_id FROM project_progres ORDER BY progres_at DESC) AS progres ON progres.project_boq_id = project_boqs.id"
+        )
+      })
 
       const models = await ProjectAbsent.query()
         .select(
@@ -110,7 +113,15 @@ export default class ProjectsController {
 
       model.$extras.totalWoker = model.workers.length
       return response.ok({
-        ...model.serialize(),
+        ...model.serialize({
+          relations: {
+            boqs: {
+              fields: {
+                omit: ['additionalUnit', 'price', 'additionalPrice'],
+              },
+            },
+          },
+        }),
         absents: models,
         summary,
         absentAt: models.length > 0 ? now : null,

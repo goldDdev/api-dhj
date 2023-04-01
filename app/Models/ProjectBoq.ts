@@ -51,7 +51,6 @@ export default class ProjectBoq extends BaseModel {
   public project: BelongsTo<typeof Project>
 
   @belongsTo(() => Boq, {
-    localKey: 'id',
     foreignKey: 'boqId',
   })
   public boq: BelongsTo<typeof Boq>

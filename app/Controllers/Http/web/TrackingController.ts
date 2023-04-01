@@ -8,6 +8,7 @@ export default class TrackingsController {
     const tracks = await Tracking.query()
       .where('projectId', request.input('projectId'))
       .where(Database.raw('DATE(created_at)'), request.input('date'))
+    // TODO : need preload join project & employee
 
     // TODO : need send center location => should be coordinate project
 

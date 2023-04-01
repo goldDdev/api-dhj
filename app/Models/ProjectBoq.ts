@@ -63,6 +63,8 @@ export default class ProjectBoq extends BaseModel {
     return {
       totalProgres: this.$extras.total_progres,
       totalPending: this.$extras.total_pending,
+      lastProgresAt: this.$extras.progres_at,
+      lastProgres: this.$extras.progres,
     }
   }
 }

@@ -8,7 +8,6 @@ import Logger from '@ioc:Adonis/Core/Logger'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import ProjectBoq from 'App/Models/ProjectBoq'
-import { DateTime } from 'luxon'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
@@ -74,7 +73,13 @@ export default class ProjectsController {
           .andWhere('project_workers.parent_id', work?.id || 0)
       })
 
-      await model.load('boqs')
+      await model.load('boqs', (query) => {
+        query
+          .select('*', 'project_boqs.id')
+          .joinRaw(
+            "LEFT JOIN (SELECT TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at,progres,project_boq_id FROM project_progres ORDER BY progres_at DESC) AS progres ON progres.project_boq_id = project_boqs.id"
+          )
+      })
 
       const models = await ProjectAbsent.query()
         .select(
@@ -110,7 +115,15 @@ export default class ProjectsController {
 
       model.$extras.totalWoker = model.workers.length
       return response.ok({
-        ...model.serialize(),
+        ...model.serialize({
+          relations: {
+            boqs: {
+              fields: {
+                omit: ['additionalUnit', 'price', 'additionalPrice'],
+              },
+            },
+          },
+        }),
         absents: models,
         summary,
         absentAt: models.length > 0 ? now : null,
@@ -267,11 +280,14 @@ export default class ProjectsController {
         'price',
         'unit',
         'project_boqs.type_unit',
-        'additional_unit',
-        'additionalPrice',
-        'project_boqs.updated_at'
+        'project_boqs.updated_at',
+        'progres.progres_at',
+        'progres.progres'
       )
       .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
+      .joinRaw(
+        "LEFT JOIN (SELECT TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at,progres,project_boq_id FROM project_progres ORDER BY progres_at DESC) AS progres ON progres.project_boq_id = project_boqs.id"
+      )
       .where('project_id', request.param('id'))
       .if(request.input('name'), (query) => {
         query.whereILike('project_boqs.name', `%${request.input('name')}%`)

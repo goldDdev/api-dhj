@@ -229,12 +229,12 @@ export default class ProjectsController {
     }
   }
 
-  public async absent({ response, request }: HttpContextContract) {
+  public async absent({ response, month, year, request }: HttpContextContract) {
     const query = await Database.from('project_absents')
       .select(
-        'project_workers.parent_id as parentId',
-        'emp.name',
-        'emp.role',
+        'project_workers.id as parentId',
+        'employees.name',
+        'employees.role',
         Database.raw('TO_CHAR(absent_at, \'YYYY-MM-DD\') as "absentAt"'),
         Database.raw('count(*)::int as total'),
         Database.raw("sum(case when absent = 'P' then 1 else 0 end)::int as present"),
@@ -244,17 +244,16 @@ export default class ProjectsController {
       .joinRaw(
         'INNER JOIN project_workers ON project_absents.project_id = project_workers.project_id AND project_absents.employee_id = project_workers.employee_id'
       )
-      .joinRaw(
-        'INNER JOIN (SELECT name, parent.role, parent.id FROM employees INNER JOIN project_workers AS parent ON employees.id = parent.employee_id) AS emp ON emp.id = project_workers.parent_id'
-      )
+      .join('employees', 'employees.id', 'project_absents.employee_id')
+
       .where('project_absents.project_id', request.param('id', 0))
       .orderBy(request.input('orderBy', 'absent_at'), request.input('order', 'asc'))
-      .groupBy('absent_at', 'project_workers.parent_id', 'emp.name', 'emp.role')
+      .groupBy('absent_at', 'project_workers.id', 'employees.name', 'employees.role')
       .andHavingRaw('EXTRACT(MONTH FROM absent_at) = :month ', {
-        month: request.input('month', moment().month() + 1),
+        month: request.input('month', month),
       })
       .andHavingRaw('EXTRACT(YEAR FROM absent_at) = :year ', {
-        year: request.input('year', moment().year()),
+        year: request.input('year', year),
       })
 
     return response.ok({
@@ -262,7 +261,7 @@ export default class ProjectsController {
     })
   }
 
-  public async viewAbsent({ request, response }: HttpContextContract) {
+  public async viewAbsent({ request, now, response }: HttpContextContract) {
     try {
       const model = await ProjectAbsent.query()
         .select(
@@ -283,9 +282,10 @@ export default class ProjectsController {
         )
         .preload('replaceEmployee')
         .where('project_absents.project_id', request.param('id', 0))
-        .andWhere('absent_at', request.input('date', moment().format('yyyy-MM-DD')))
-        .andWhere('project_workers.parent_id', request.param('parent', 0))
-        .orWhere('project_workers.id', request.param('parent', 0))
+        .andWhere('absent_at', request.input('date', now))
+        .andWhereRaw('(project_workers.parent_id = :parent OR project_workers.id = :parent)', {
+          parent: request.param('parent', 0),
+        })
         .orderBy('parent_id', 'desc')
 
       const summary = model.reduce(
@@ -300,7 +300,7 @@ export default class ProjectsController {
 
       return response.ok({
         data: {
-          absentAt: request.input('date', moment().format('yyyy-MM-DD')),
+          absentAt: request.input('date', now),
           projectId: +request.param('id', 0),
           parentId: +request.param('parent', 0),
           summary,

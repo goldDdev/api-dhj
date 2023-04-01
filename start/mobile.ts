@@ -40,7 +40,7 @@ Route.group(() => {
     }).prefix('tracking')
 
     Route.get('/settings', 'SettingController.index')
-  }).middleware(['auth'])
+  }).middleware(['auth', 'tz'])
 })
   .namespace('App/Controllers/Http/mobile')
   .prefix('mobile')

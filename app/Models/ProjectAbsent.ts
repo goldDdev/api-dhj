@@ -114,6 +114,10 @@ export default class ProjectAbsent extends BaseModel {
       role: this.$extras.role,
       parentId: this.$extras.parent_id,
       workerId: this.$extras.worker_id,
+      projectName: this.$extras.project_name,
+      projectStatus: this.$extras.project_status,
+      projectCompany: this.$extras.project_company,
+      projectLocation: this.$extras.project_location,
     }
   }
 }

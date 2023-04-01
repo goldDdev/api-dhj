@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm'
+import moment from 'moment'
 
 export default class ProjectProgres extends BaseModel {
   @column({ isPrimary: true })
@@ -20,6 +21,13 @@ export default class ProjectProgres extends BaseModel {
 
   @column({ columnName: 'progres', serializeAs: 'progres', consume: (value) => +value })
   public progres: number
+
+  @column({
+    columnName: 'progres_at',
+    serializeAs: 'progresAt',
+    consume: (value) => moment(value).format('yyyy-MM-DD'),
+  })
+  public progresAt: string
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime

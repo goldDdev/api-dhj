@@ -4,11 +4,11 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import Project from 'App/Models/Project'
 import ProjectProgres from 'App/Models/ProjectProgres'
 import codeError from 'Config/codeError'
-import moment from 'moment'
 import Logger from '@ioc:Adonis/Core/Logger'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import ProjectBoq from 'App/Models/ProjectBoq'
+import { DateTime } from 'luxon'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
@@ -39,7 +39,7 @@ export default class ProjectsController {
     return response.send(query.serialize().data)
   }
 
-  public async view({ auth, request, response }: HttpContextContract) {
+  public async view({ auth, request, now, response }: HttpContextContract) {
     try {
       const work = await ProjectWorker.query()
         .where({
@@ -74,6 +74,8 @@ export default class ProjectsController {
           .andWhere('project_workers.parent_id', work?.id || 0)
       })
 
+      await model.load('boqs')
+
       const models = await ProjectAbsent.query()
         .select(
           '*',
@@ -87,13 +89,15 @@ export default class ProjectsController {
         )
         .join('employees', 'employees.id', '=', 'project_absents.employee_id')
         .joinRaw(
-          'INNER JOIN project_workers ON employees.id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+          'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
         )
         .preload('replaceEmployee')
         .where('project_absents.project_id', request.param('id', 0))
-        .andWhere('project_workers.parent_id', auth.user!.employee.work.id)
-        .andWhere('absent_at', request.input('date', moment().format('yyyy-MM-DD')))
 
+        .andWhere('absent_at', now)
+        .andWhereRaw('(project_workers.id = :id OR project_workers.parent_id = :id)', {
+          id: work?.id || 0,
+        })
       const summary = models.reduce(
         (p, n) => ({
           present: p.present + Number(n.absent === AbsentType.P),
@@ -109,7 +113,7 @@ export default class ProjectsController {
         ...model.serialize(),
         absents: models,
         summary,
-        absentAt: models.length > 0 ? moment().format('yyyy-MM-DD') : null,
+        absentAt: models.length > 0 ? now : null,
       })
     } catch (error) {
       Logger.info(error)
@@ -122,7 +126,7 @@ export default class ProjectsController {
     }
   }
 
-  public async absent({ response, request }: HttpContextContract) {
+  public async absent({ response, request, year, month }: HttpContextContract) {
     const query = await Database.from('project_absents')
       .select(
         'project_workers.parent_id as parentId',
@@ -144,10 +148,10 @@ export default class ProjectsController {
       .orderBy(request.input('orderBy', 'absent_at'), request.input('order', 'asc'))
       .groupBy('absent_at', 'project_workers.parent_id', 'emp.name', 'emp.role')
       .andHavingRaw('EXTRACT(MONTH FROM absent_at) = :month ', {
-        month: request.input('month', moment().month() + 1),
+        month: request.input('month', month),
       })
       .andHavingRaw('EXTRACT(YEAR FROM absent_at) = :year ', {
-        year: request.input('year', moment().year()),
+        year: request.input('year', year),
       })
 
     return response.ok({
@@ -187,32 +191,46 @@ export default class ProjectsController {
     }
   }
 
-  public async progres({ auth, response, request }: HttpContextContract) {
-    const trx = await Database.transaction()
+  public async progres({ auth, now, response, request }: HttpContextContract) {
+    let isAvailable = false
+
     try {
       const payload = await request.validate({
         schema: schema.create({
           id: schema.number(),
           progres: schema.number(),
+          date: schema.string.optional(),
         }),
       })
-      await ProjectProgres.create(
-        {
+
+      const last = await ProjectProgres.query()
+        .where({
+          project_id: request.param('id'),
+          project_boq_id: payload.id,
+        })
+        .andWhere('progres_at', request.input('date', now))
+        .first()
+
+      if (!last) {
+        isAvailable = true
+      }
+
+      if (isAvailable) {
+        await ProjectProgres.create({
           projectId: request.param('id'),
           projectBoqId: payload.id,
           progres: payload.progres,
           submitedProgres: payload.progres,
           submitedBy: auth.user?.id,
-        },
-        { client: trx }
-      )
+          progresAt: request.input('date', now),
+        })
+        return response.noContent()
+      }
 
-      await trx.commit()
-      return response.status(204)
+      return response.unprocessableEntity({ code: codeError.entity, type: 'exists' })
     } catch (error) {
-      await trx.rollback()
-      console.error(error)
-      return response.notFound({ code: codeError.badRequest, type: 'Server error' })
+      Logger.info(error)
+      return response.notFound({ code: codeError.badRequest, type: 'badRequest' })
     }
   }
 
@@ -223,6 +241,7 @@ export default class ProjectsController {
         'project_boqs.name',
         'project_boqs.type_unit',
         'progres',
+        'progres_at',
         'submited_progres',
         'project_progres.created_at'
       )
@@ -230,6 +249,9 @@ export default class ProjectsController {
       .join('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
       .if(request.input('name'), (query) => {
         query.whereILike('project_boqs.name', `%${request.input('name')}%`)
+      })
+      .if(request.input('date'), (query) => {
+        query.andWhere('project_progres.progres_at', request.input('date'))
       })
       .orderBy(request.input('orderBy', 'project_progres.id'), request.input('order', 'desc'))
 

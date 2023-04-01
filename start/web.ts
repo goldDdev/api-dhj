@@ -10,6 +10,8 @@ Route.group(() => {
       Route.put('/:id/detail', 'EmployeesController.update')
       Route.put('/status', 'EmployeesController.status')
       Route.get('/:id/detail', 'EmployeesController.view')
+      Route.get('/:id/project', 'EmployeesController.project')
+      Route.get('/:id/absent', 'EmployeesController.absent')
     }).prefix('employee')
 
     Route.group(() => {
@@ -50,13 +52,20 @@ Route.group(() => {
       Route.get('/', 'AbsentController.index')
     }).prefix('absent')
 
+    Route.group(() => {
+      Route.get('/:id/all', 'ProjectProgresController.all')
+      Route.put('/', 'ProjectProgresController.update')
+      Route.put('/confirm', 'ProjectProgresController.confirm')
+      Route.delete('/:id', 'ProjectProgresController.delete')
+    }).prefix('progres')
+
     Route.get('/tracking', 'TrackingController.index')
     Route.get('/current', 'UsersController.current')
     Route.post('/logout', 'AuthController.logout')
 
     Route.resource('boq', 'BoqsController').except(['create', 'edit'])
     Route.resource('user', 'UsersController').except(['create', 'edit'])
-  }).middleware(['auth'])
+  }).middleware(['auth', 'tz'])
 })
   .namespace('App/Controllers/Http/web')
   .prefix('web')

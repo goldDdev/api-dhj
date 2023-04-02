@@ -74,35 +74,35 @@ export default class ProjectsController {
       })
 
       await model.load('boqs', (query) => {
-        query
-          .select('*', 'project_boqs.id')
-          .joinRaw(
-            "LEFT JOIN (SELECT TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at,progres,project_boq_id FROM project_progres ORDER BY progres_at DESC) AS progres ON progres.project_boq_id = project_boqs.id"
-          )
+        query.joinRaw(
+          "LEFT OUTER JOIN (SELECT DISTINCT ON (project_boq_id) project_boq_id, TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at, progres FROM project_progres ORDER BY project_boq_id, progres_at DESC) AS progres ON progres.project_boq_id = project_boqs.id"
+        )
       })
 
       const models = await ProjectAbsent.query()
         .select(
-          '*',
           'employees.name',
           Database.raw("TO_CHAR(absent_at, 'YYYY-MM-DD') as absent_at"),
           'project_absents.id',
+          'absent',
+          'absent_at',
           'employees.card_id as cardID',
           'employees.phone_number as phoneNumber',
           'project_workers.role',
-          'project_absents.project_id'
+          'late_duration',
+          'come_at',
+          'close_at'
         )
         .join('employees', 'employees.id', '=', 'project_absents.employee_id')
         .joinRaw(
           'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
         )
-        .preload('replaceEmployee')
         .where('project_absents.project_id', request.param('id', 0))
-
         .andWhere('absent_at', now)
         .andWhereRaw('(project_workers.id = :id OR project_workers.parent_id = :id)', {
           id: work?.id || 0,
         })
+
       const summary = models.reduce(
         (p, n) => ({
           present: p.present + Number(n.absent === AbsentType.P),
@@ -117,9 +117,22 @@ export default class ProjectsController {
       return response.ok({
         ...model.serialize({
           relations: {
+            workers: {
+              fields: {
+                omit: ['projectId', 'employeeId'],
+              },
+            },
             boqs: {
               fields: {
-                omit: ['additionalUnit', 'price', 'additionalPrice'],
+                omit: [
+                  'additionalUnit',
+                  'price',
+                  'additionalPrice',
+                  'boqId',
+                  'projectId',
+                  'createdAt',
+                  'updatedAt',
+                ],
               },
             },
           },

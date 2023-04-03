@@ -10,7 +10,7 @@ export default class extends BaseSchema {
       table.string('name')
       table.string('unit')
       table.integer('qty')
-      table.integer('minQty')
+      table.integer('min_qty')
       table.integer('project_id').index('inv_prj_id')
 
       /**

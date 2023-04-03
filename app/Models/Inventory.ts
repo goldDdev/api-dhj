@@ -15,13 +15,13 @@ export default class Inventory extends BaseModel {
   public unit: string
 
   @column({ columnName: 'qty' })
-  public qty: string
+  public qty: number
 
   @column({ columnName: 'min_qty', serializeAs: 'minQty' })
-  public minQty: string
+  public minQty: number
 
   @column({ columnName: 'project_id', serializeAs: 'projectID' })
-  public projectID: string
+  public projectID: number
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime

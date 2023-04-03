@@ -6,7 +6,7 @@ export default class InventorysController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
       await Inventory.query()
-        .select(['id', 'type', 'name', 'unit'])
+        .select(['id', 'type', 'name', 'unit', 'qty', 'minQty'])
         .if(request.input('type'), (query) => query.where('type', request.input('type')))
         .if(request.input('name'), (query) =>
           query
@@ -33,12 +33,13 @@ export default class InventorysController {
       const inventory = await Inventory.create({
         name,
         unit,
-        minQty,
         qty,
+        minQty,
         type,
       })
       return response.created({ data: inventory })
     } catch (error) {
+      console.error(error)
       return response.unprocessableEntity({ error })
     }
   }

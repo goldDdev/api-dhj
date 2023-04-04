@@ -1,4 +1,13 @@
-import { BaseModel, HasOne, column, computed, hasOne } from '@ioc:Adonis/Lucid/Orm'
+import {
+  BaseModel,
+  HasMany,
+  HasOne,
+  column,
+  computed,
+  hasMany,
+  hasOne,
+  scope,
+} from '@ioc:Adonis/Lucid/Orm'
 import { DateTime } from 'luxon'
 import User from './User'
 import ProjectWorker from './ProjectWorker'
@@ -77,9 +86,33 @@ export default class Employee extends BaseModel {
   })
   public work: HasOne<typeof ProjectWorker>
 
+  @hasMany(() => ProjectWorker, {
+    localKey: 'id',
+    foreignKey: 'employeeId',
+    onQuery: (query) => {
+      if (query.isRelatedQuery) {
+        query
+          .join('projects', 'projects.id', 'project_workers.project_id')
+          .select(
+            'project_workers.id',
+            'project_id',
+            'join_at',
+            'project_workers.status',
+            'projects.name AS project_name',
+            'projects.status AS project_status'
+          )
+      }
+    },
+  })
+  public works: HasMany<typeof ProjectWorker>
+
   public serializeExtras() {
     return {
       email: this.$extras.email,
     }
   }
+
+  public static withUser = scope((query) => {
+    query.leftJoin('users', 'users.employee_id', 'employees.id')
+  })
 }

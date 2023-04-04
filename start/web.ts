@@ -6,13 +6,15 @@ Route.group(() => {
   Route.group(() => {
     Route.group(() => {
       Route.get('/', 'EmployeesController.index')
+      Route.get('/all', 'EmployeesController.all')
       Route.post('/', 'EmployeesController.create')
+      Route.get('/:id', 'EmployeesController.view')
+      Route.get('/:id/project', 'EmployeesController.project')
+      Route.get('/:id/report', 'EmployeesController.reportAbsent')
       Route.post('/validation', 'EmployeesController.validation')
       Route.put('/', 'EmployeesController.update')
       Route.put('/status', 'EmployeesController.status')
-      Route.get('/:id', 'EmployeesController.view')
-      Route.get('/:id/project', 'EmployeesController.project')
-      Route.get('/:id/absent', 'EmployeesController.absent')
+      Route.put('/optional', 'EmployeesController.updateOptional')
       Route.delete('/:id', 'EmployeesController.destroy')
     }).prefix('employee')
 
@@ -20,6 +22,11 @@ Route.group(() => {
       Route.get('/', 'SettingController.index')
       Route.put('/', 'SettingController.update')
     }).prefix('setting')
+
+    Route.group(() => {
+      Route.get('/:id/employee', 'PayrolController.employee')
+      Route.get('/employee/all', 'PayrolController.employeeAll')
+    }).prefix('payrol')
 
     Route.group(() => {
       Route.get('/', 'ProjectsController.index')

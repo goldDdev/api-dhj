@@ -53,7 +53,23 @@ export default class ProjectWorker extends BaseModel {
   })
   public project: BelongsTo<typeof Project>
 
-  @hasMany(() => ProjectWorker, { foreignKey: 'parentId', localKey: 'id' })
+  @hasMany(() => ProjectWorker, {
+    foreignKey: 'parentId',
+    localKey: 'id',
+    onQuery: (query) => {
+      if (query.isRelatedPreloadQuery) {
+        query
+          .select(
+            '*',
+            'project_workers.id',
+            'project_workers.role',
+            'employees.card_id as cardID',
+            'employees.phone_number as phoneNumber'
+          )
+          .join('employees', 'employees.id', '=', 'project_workers.employee_id')
+      }
+    },
+  })
   public members: HasMany<typeof ProjectWorker>
 
   public serializeExtras() {
@@ -61,6 +77,8 @@ export default class ProjectWorker extends BaseModel {
       name: this.$extras.name,
       cardID: this.$extras.cardID,
       phoneNumber: this.$extras.phoneNumber,
+      projectName: this.$extras.project_name,
+      projecStatus: this.$extras.project_status,
     }
   }
 }

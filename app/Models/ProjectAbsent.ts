@@ -1,8 +1,10 @@
 import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, belongsTo, column, scope } from '@ioc:Adonis/Lucid/Orm'
 import Employee from './Employee'
 import Project from './Project'
 import moment from 'moment'
+import Database from '@ioc:Adonis/Lucid/Database'
+import User from './User'
 
 export enum AbsentType {
   A = 'A',
@@ -120,4 +122,14 @@ export default class ProjectAbsent extends BaseModel {
       projectLocation: this.$extras.project_location,
     }
   }
+
+  public static withWorker = scope((query) => {
+    query.joinRaw(
+      'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+    )
+  })
+
+  public static withEmployee = scope((query) => {
+    query.join('employees', 'employees.id', '=', 'project_absents.employee_id')
+  })
 }

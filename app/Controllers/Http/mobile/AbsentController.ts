@@ -59,11 +59,10 @@ export default class AbsentController {
         'project_workers.role',
         'project_absents.project_id'
       )
-      .join('employees', 'employees.id', '=', 'project_absents.employee_id')
-      .joinRaw(
-        'INNER JOIN project_workers ON  project_workers.employee_id = project_absents.employee_id AND project_absents.project_id = project_workers.project_id'
-      )
-      .preload('replaceEmployee')
+      .withScopes((scopes) => {
+        scopes.withEmployee()
+        scopes.withWorker()
+      })
       .where('project_absents.project_id', request.param('id', 0))
       .andWhereRaw('(project_workers.id = :id OR project_workers.parent_id = :id)', {
         id: auth.user!.employee.work.id,
@@ -133,9 +132,7 @@ export default class AbsentController {
 
       workers.forEach(async (value) => {
         const findWork = await ProjectAbsent.query()
-          .joinRaw(
-            'INNER JOIN project_workers ON project_workers.employee_id = project_absents.employee_id AND project_absents.project_id = project_workers.project_id'
-          )
+          .withScopes((scopes) => scopes.withWorker())
           .andWhere('project_workers.id', value.id)
           .andWhere('absent_at', now)
           .first()
@@ -225,9 +222,7 @@ export default class AbsentController {
       const workers = (
         (await ProjectAbsent.query()
           .select('project_absents.id')
-          .joinRaw(
-            'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
-          )
+          .withScopes((scopes) => scopes.withWorker())
           .where('project_absents.project_id', request.input('projectId'))
           .andWhereRaw('(project_workers.id = :id OR project_workers.parent_id = :id)', {
             id: work.id,

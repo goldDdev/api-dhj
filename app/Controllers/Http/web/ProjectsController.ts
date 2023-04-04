@@ -162,17 +162,7 @@ export default class ProjectsController {
         'employees.card_id as cardID',
         'employees.phone_number as phoneNumber'
       )
-      .preload('members', (query) => {
-        query
-          .select(
-            '*',
-            'project_workers.id',
-            'project_workers.role',
-            'employees.card_id as cardID',
-            'employees.phone_number as phoneNumber'
-          )
-          .join('employees', 'employees.id', '=', 'project_workers.employee_id')
-      })
+      .preload('members')
       .join('employees', 'employees.id', '=', 'project_workers.employee_id')
       .whereNull('parent_id')
       .where('project_id', request.param('id'))
@@ -283,11 +273,10 @@ export default class ProjectsController {
           'project_workers.id AS worker_id',
           'project_absents.project_id'
         )
-        .join('employees', 'employees.id', '=', 'project_absents.employee_id')
-        .joinRaw(
-          'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
-        )
-        .preload('replaceEmployee')
+        .withScopes((scopes) => {
+          scopes.withEmployee()
+          scopes.withWorker()
+        })
         .where('project_absents.project_id', request.param('id', 0))
         .andWhere('absent_at', request.input('date', now))
         .andWhereRaw('(project_workers.parent_id = :parent OR project_workers.id = :parent)', {

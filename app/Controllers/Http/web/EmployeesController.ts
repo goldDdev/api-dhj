@@ -1,3 +1,4 @@
+import { ProjectStatus } from './../../../Models/Project'
 // @ts-nocheck
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
@@ -56,12 +57,61 @@ export default class EmployeesController {
     )
   }
 
+  public async all({ response, request }: HttpContextContract) {
+    const query = await Employee.query()
+      .select([
+        'employees.id',
+        'name',
+        'phoneNumber',
+        'role',
+        'card_id',
+        'inactive_at',
+        'users.email',
+      ])
+      .withScopes((scopes) => scopes.withUser())
+      .where('role', 'NOT IN', ['ADMIN', 'OWNER'])
+      .if(request.input('name'), (query) =>
+        query.andWhereILike('name', `%${request.input('name')}%`)
+      )
+      .if(request.input('role'), (query) => query.andWhere('role', request.input('role')))
+      .if(request.input('type'), (query) => {
+        if (request.input('type') === 'lead') {
+          query.andWhereNotIn('role', ['WORKER', 'STAFF'])
+        } else {
+          query.andWhereIn('role', ['WORKER', 'STAFF'])
+        }
+      })
+      .if(request.input('except'), async (query) => {
+        const model = await ProjectWorker.query().where({
+          project_id: request.input('except'),
+          status: ProjectWorkerStatus.ACTIVE,
+        })
+        query.andWhereNotIn(
+          'employees.id',
+          model.map((v) => v.employeeId)
+        )
+      })
+      .if(request.input('status'), (query) => {
+        if (request.input('status') === 'ACTIVE') {
+          query.andWhereNull('inactive_at')
+        } else {
+          query.andWhereNotNull('inactive_at')
+        }
+      })
+      .orderByRaw("CASE WHEN role = 'WORKER' THEN 3 WHEN role = 'MANDOR' THEN 2 ELSE 1 END ASC")
+
+    return response.send({ data: query })
+  }
+
   public async view({ auth, request, response }: HttpContextContract) {
     try {
       const employee = await Employee.query()
         .where('id', request.param('id'))
         .preload('user')
         .firstOrFail()
+
+      await employee.load('works')
+
       return response.created({ data: employee })
     } catch (error) {
       return response.notFound({ error })
@@ -174,6 +224,27 @@ export default class EmployeesController {
       }
     } catch (error) {
       await trx.rollback()
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async updateOptional({ auth, request, response }: HttpContextContract) {
+    try {
+      const payload = await request.validate({
+        schema: schema.create({
+          id: schema.number(),
+          hourlyWages: schema.number.optional(),
+          salary: schema.number.optional(),
+        }),
+      })
+
+      const { id, ...emp } = payload
+      const model = await Employee.findOrFail(id)
+      await model.merge(emp).save()
+      await model.refresh()
+
+      return response.status(200).json({ data: model.serialize() })
+    } catch (error) {
       return response.unprocessableEntity({ error })
     }
   }
@@ -297,5 +368,37 @@ export default class EmployeesController {
     } catch (error) {
       return response.unprocessableEntity({ error })
     }
+  }
+
+  public async reportAbsent({ auth, request, response }: HttpContextContract) {
+    const query = await ProjectAbsent.query().where({ employee_id: request.param('id', 0) })
+
+    const report = await Database.from('project_absents')
+      .select(
+        Database.raw('SUM(late_duration)::int AS "totalLateDuration"'),
+        Database.raw('SUM(late_price)::int AS "totalLatePrice"'),
+        Database.raw('SUM(duration)::int AS "totalDuration"'),
+        Database.raw('SUM(CASE WHEN absent = \'P\' THEN 1 ELSE 0 END)::int AS "totalPresent"'),
+        Database.raw('SUM(CASE WHEN absent != \'P\' THEN 1 ELSE 0 END)::int AS "totalAbsent"'),
+        Database.raw("MIN(TO_CHAR(absent_at, 'YYYY-MM-DD')) AS start"),
+        Database.raw("MAX(TO_CHAR(absent_at, 'YYYY-MM-DD')) AS end")
+      )
+      .joinRaw(
+        'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+      )
+      .where({
+        ['project_absents.employee_id']: request.param('id', 0),
+      })
+
+    return response.ok({
+      report: report,
+      // data: query.map((v) =>
+      //   v.serialize({
+      //     fields: {
+      //       omit: ['updated_at', 'created_at', 'employeeId', 'latitude', 'longitude'],
+      //     },
+      //   })
+      // ),
+    })
   }
 }

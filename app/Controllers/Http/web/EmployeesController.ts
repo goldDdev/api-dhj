@@ -22,7 +22,7 @@ export default class EmployeesController {
           'users.email',
         ])
         .leftJoin('users', 'users.employee_id', 'employees.id')
-        .where('role', 'NOT IN', ['ADMIN', 'OWNER'])
+        .where('role', 'NOT IN', ['ADMIN', 'OWNER', 'PM', 'PCC', 'QCC', 'SUP'])
 
         .if(request.input('name'), (query) =>
           query.andWhereILike('name', `%${request.input('name')}%`)

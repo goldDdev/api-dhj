@@ -9,7 +9,14 @@ export default class AuthController {
     try {
       const { email, password } = request.body()
       const { token } = await auth.use('api').attempt(email, password)
-      const model = await User.findOrFail(auth.user?.id)
+      const model = await User.find(auth.user?.id)
+      if (!model) {
+        return response.badRequest({
+          code: codeError.unauthorization,
+          error: 'Invalid credentials',
+        })
+      }
+
       await model.load('employee', (query) => query.preload('work'))
 
       return response.send({

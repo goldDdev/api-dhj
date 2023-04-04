@@ -32,7 +32,7 @@ export default class UsersController {
             query.whereNotNull('inactive_at')
           }
         })
-        .where('role', 'IN', ['ADMIN', 'OWNER'])
+        .where('role', 'IN', ['ADMIN', 'OWNER', 'PM', 'PCC', 'QCC', 'SUP'])
         .orderBy('id', 'desc')
         .paginate(request.input('page', 1), request.input('perPage', 15))
     )

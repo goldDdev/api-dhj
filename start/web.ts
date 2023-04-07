@@ -26,6 +26,7 @@ Route.group(() => {
     Route.group(() => {
       Route.get('/:id/employee', 'PayrolController.employee')
       Route.get('/employee/all', 'PayrolController.employeeAll')
+      Route.post('/multi', 'PayrolController.addMulti')
     }).prefix('payrol')
 
     Route.group(() => {

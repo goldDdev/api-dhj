@@ -33,6 +33,12 @@ export default class ProjectsController {
       .if(request.input('status'), (query) =>
         query.andWhere('projects.status', request.input('status'))
       )
+      .if(request.input('date'), (query) =>
+        // TODO : next step need combine with weekly plan each employee
+        query
+          .andWhere('projects.start_at', '<=', request.input('date'))
+          .andWhere('projects.finish_at', '>=', request.input('date'))
+      )
       .orderBy(request.input('orderBy', 'id'), request.input('groupBy', 'desc'))
       .paginate(request.input('page', 1), request.input('perPage', 15))
     return response.send(query.serialize().data)

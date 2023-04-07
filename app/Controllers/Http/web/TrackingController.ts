@@ -24,6 +24,7 @@ export default class TrackingsController {
       .where('trackings.project_id', request.input('projectId'))
       .where(Database.raw('DATE(trackings.created_at)'), request.input('date'))
       .orderBy('trackings.created_at', 'desc')
+    // TODO : how to get group emp get last
     // .groupBy('employeeId')
 
     // TODO : employee project but not in trackings ?

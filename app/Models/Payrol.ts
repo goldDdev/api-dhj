@@ -1,4 +1,12 @@
-import { BaseModel, BelongsTo, HasMany, belongsTo, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
+import {
+  BaseModel,
+  BelongsTo,
+  HasMany,
+  belongsTo,
+  column,
+  hasMany,
+  scope,
+} from '@ioc:Adonis/Lucid/Orm'
 import { DateTime } from 'luxon'
 import Employee from './Employee'
 import PayrolProject from './PayrolProject'
@@ -114,8 +122,12 @@ export default class Payrol extends BaseModel {
   public serializeExtras() {
     return {
       name: this.$extras.name,
-      cardID: this.$extras.cardID,
-      phoneNumber: this.$extras.phoneNumber,
+      cardID: this.$extras.card_id,
+      phoneNumber: this.$extras.phone_number,
     }
   }
+
+  public static withEmployee = scope((query) => {
+    query.join('employees', 'employees.id', '=', 'payrols.employee_id')
+  })
 }

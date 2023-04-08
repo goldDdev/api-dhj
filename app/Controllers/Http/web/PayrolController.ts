@@ -6,6 +6,24 @@ import ProjectAbsent from 'App/Models/ProjectAbsent'
 import Logger from '@ioc:Adonis/Core/Logger'
 import Payrol from 'App/Models/Payrol'
 export default class PayrolController {
+  public async index({ month, year, request, response }: HttpContextContract) {
+    const query = await Payrol.query()
+      .select('*', 'payrols.id')
+      .where({ month: request.input('month', month), year: request.input('year', year) })
+      .withScopes((scope) => scope.withEmployee())
+      .paginate(request.input('page', 1), request.input('perPage', 15))
+
+    return response.ok(query)
+  }
+
+  public async view({ request, response }: HttpContextContract) {
+    const query = await Payrol.firstOrFail(request.param('id'))
+    await query.load('employee')
+    return response.ok({
+      data: query.serialize(),
+    })
+  }
+
   public async create({ request, response }: HttpContextContract) {
     try {
       const payload = await request.validate({
@@ -43,6 +61,7 @@ export default class PayrolController {
       return response.unprocessableEntity({ error })
     }
   }
+
   public async employee({ auth, month, year, request, response }: HttpContextContract) {
     const emp = await Employee.findOrFail(request.param('id'))
     const query = await ProjectAbsent.query().where({ employee_id: request.param('id', 0) })
@@ -126,7 +145,11 @@ export default class PayrolController {
     })
   }
 
-  public async employeeAll({ auth, month, year, request, response }: HttpContextContract) {
+  public async employeeAll({ month, year, request, response }: HttpContextContract) {
+    const exsitId = await Database.from('payrols')
+      .select('employee_id')
+      .where({ month: request.input('month', month), year: request.input('year', year) })
+
     const absent = await Database.from('project_absents')
       .select(
         'project_absents.employee_id AS id',
@@ -153,6 +176,10 @@ export default class PayrolController {
       )
       .joinRaw(
         "LEFT JOIN (SELECT employee_id, absent_at, total_earn, overtime_duration FROM additional_hours WHERE status = 'CONFIRM') AS ah ON ah.employee_id = project_absents.employee_id AND ah.absent_at = project_absents.absent_at"
+      )
+      .whereNotIn(
+        'project_absents.employee_id',
+        exsitId.map((v) => v.employee_id)
       )
       .andWhereRaw('EXTRACT(MONTH FROM project_absents.absent_at) = :month', {
         month: request.input('month', month),
@@ -181,7 +208,7 @@ export default class PayrolController {
     })
   }
 
-  public async addMulti({ auth, month, year, request, response }: HttpContextContract) {
+  public async addMulti({ request, response }: HttpContextContract) {
     try {
       const payload = await request.validate({
         schema: schema.create({
@@ -228,7 +255,7 @@ export default class PayrolController {
 
         .groupBy('project_absents.employee_id', 'employees.salary', 'project_workers.role')
 
-      await Payrol.createMany(
+      const model = await Payrol.createMany(
         absent.map((value) => ({
           ...value,
           month: payload.month,
@@ -237,7 +264,7 @@ export default class PayrolController {
         }))
       )
 
-      return response.json({ data: absent })
+      return response.json({ data: model })
     } catch (err) {
       Logger.info(err)
       return response.unprocessableEntity({ error: err })

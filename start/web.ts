@@ -24,6 +24,8 @@ Route.group(() => {
     }).prefix('setting')
 
     Route.group(() => {
+      Route.get('/', 'PayrolController.index')
+      Route.get('/:id', 'PayrolController.view')
       Route.get('/:id/employee', 'PayrolController.employee')
       Route.get('/employee/all', 'PayrolController.employeeAll')
       Route.post('/multi', 'PayrolController.addMulti')

@@ -63,6 +63,12 @@ export default class Payrol extends BaseModel {
   @column({ columnName: 'total_late_price', serializeAs: 'totalLatePrice' })
   public totalLatePrice: number
 
+  @column({ columnName: 'total_overtime', serializeAs: 'totalOvertime' })
+  public totalOvertime: number
+
+  @column({ columnName: 'total_late', serializeAs: 'totalLate' })
+  public totalLate: number
+
   @column({ columnName: 'total_overtime_duration', serializeAs: 'totalOvertimeDuration' })
   public totalOvertimeDuration: number
 

@@ -113,22 +113,30 @@ export default class AbsentController {
         })
         .whereIn('id', inputWorkers.concat([work.id]))
 
-      const { hour, minute } = (await Database.from('settings')
+      const { hour, minute } = await Database.from('settings')
         .select(
           Database.raw(
             'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
           )
         )
         .where('code', SettingCode.START_TIME)
-        .first()) || { hour: 7, minute: 0 }
+        .first()
 
-      const { value: latePrice } = (await Database.from('settings')
+      const { value: latePrice } = await Database.from('settings')
         .where('code', SettingCode.LATETIME_PRICE_PER_MINUTE)
-        .first()) || { value: 0 }
+        .first()
+
+      const { value: lateTreshold } = await Database.from('settings')
+        .where('code', SettingCode.LATE_TRESHOLD)
+        .first()
 
       const comeAt = DateTime.local({ zone: 'UTC+7' }).toFormat('HH:mm')
       const startWork = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
-      const lateDuration = Math.round(startWork.diffNow('minutes').minutes)
+      const startWorkLate = DateTime.fromObject(
+        { hour: hour, minute: lateTreshold },
+        { zone: 'UTC+7' }
+      )
+      const lateDuration = Math.round(startWorkLate.diffNow('minutes').minutes)
 
       workers.forEach(async (value) => {
         const findWork = await ProjectAbsent.query()
@@ -196,9 +204,17 @@ export default class AbsentController {
       .where('code', SettingCode.LATETIME_PRICE_PER_MINUTE)
       .first()
 
+    const { value: lateTreshold } = await Database.from('settings')
+      .where('code', SettingCode.LATE_TRESHOLD)
+      .first()
+
     const comeAt = DateTime.local({ zone: 'UTC+7' }).toFormat('HH:mm')
     const startWork = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
-    const lateDuration = Math.round(startWork.diffNow('minutes').minutes)
+    const startWorkLate = DateTime.fromObject(
+      { hour: hour, minute: lateTreshold },
+      { zone: 'UTC+7' }
+    )
+    const lateDuration = Math.round(startWorkLate.diffNow('minutes').minutes)
 
     workers.forEach(async (value) => {
       const findWork = await ProjectAbsent.query()

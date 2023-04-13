@@ -2,6 +2,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Employee, { EmployeeType } from 'App/Models/Employee'
+import ProjectAbsent from 'App/Models/ProjectAbsent'
 import ProjectWorker from 'App/Models/ProjectWorker'
 import RequestOvertime, { OTType, RequestOTStatus } from 'App/Models/RequestOvertime'
 import Setting, { SettingCode } from 'App/Models/Setting'
@@ -165,8 +166,24 @@ export default class AdditionalHourController {
         .andWhereIn('status', [RequestOTStatus.CONFIRM, RequestOTStatus.PENDING])
         .first()
 
+      const absent = await ProjectAbsent.query()
+        .where({
+          employee_id: payload.employeeId,
+          project_id: payload.projectId,
+          absent_at: now,
+          absent: 'P',
+        })
+        .first()
+
       if (find) {
         return response.unprocessableEntity({ code: codeError.entity, type: 'exist' })
+      }
+
+      if (absent) {
+        return response.unprocessableEntity({
+          code: codeError.absentNotExist,
+          type: 'absentNotExist',
+        })
       }
 
       const employee = await Employee.findOrFail(payload.employeeId)
@@ -184,7 +201,7 @@ export default class AdditionalHourController {
         totalEarn: (payload.duration / 60) * +setting.value,
       })
       await model.refresh()
-      return response.ok(model.serialize())
+      return response.noContent()
     } catch (error) {
       return response.unprocessableEntity(error)
     }

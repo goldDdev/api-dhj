@@ -6,4 +6,5 @@ export default {
   notFound: 44,
   entity: 45,
   errors: 50,
+  absentNotExist: 51,
 }

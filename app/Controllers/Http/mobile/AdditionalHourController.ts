@@ -1,7 +1,7 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
-import Employee from 'App/Models/Employee'
+import Employee, { EmployeeType } from 'App/Models/Employee'
 import ProjectWorker from 'App/Models/ProjectWorker'
 import RequestOvertime, { OTType, RequestOTStatus } from 'App/Models/RequestOvertime'
 import Setting, { SettingCode } from 'App/Models/Setting'
@@ -143,16 +143,14 @@ export default class AdditionalHourController {
     return response.ok({ ...model.serialize(), employees: list })
   }
 
-  public async create({ auth, request, response }: HttpContextContract) {
+  public async create({ auth, now, request, response }: HttpContextContract) {
     try {
       const payload = await request.validate({
         schema: schema.create({
           employeeId: schema.number(),
           projectId: schema.number(),
-          absentAt: schema.string(),
           comeAt: schema.string.optional(),
           closeAt: schema.string.optional(),
-          type: schema.string.optional(),
           duration: schema.number(),
           note: schema.string.optional(),
         }),
@@ -160,9 +158,9 @@ export default class AdditionalHourController {
 
       const find = await RequestOvertime.query()
         .where({
-          employeeId: payload.employeeId,
-          projectId: payload.projectId,
-          type: payload.type,
+          employee_id: payload.employeeId,
+          project_id: payload.projectId,
+          absent_at: now,
         })
         .andWhereIn('status', [RequestOTStatus.CONFIRM, RequestOTStatus.PENDING])
         .first()
@@ -171,14 +169,15 @@ export default class AdditionalHourController {
         return response.unprocessableEntity({ code: codeError.entity, type: 'exist' })
       }
 
+      const employee = await Employee.findOrFail(payload.employeeId)
       const setting = await Setting.findByOrFail('code', SettingCode.OVERTIME_PRICE_PER_HOUR)
       const model = await RequestOvertime.create({
         employeeId: payload.employeeId,
         projectId: payload.projectId,
-        absentAt: payload.absentAt,
+        absentAt: now,
         comeAt: payload.comeAt,
         closeAt: payload.closeAt,
-        type: payload.type,
+        type: employee.role === EmployeeType.MANDOR ? 'TEAM' : 'PERSONAL',
         requestBy: auth.user?.employeeId,
         overtimePrice: +setting.value,
         overtimeDuration: payload.duration,

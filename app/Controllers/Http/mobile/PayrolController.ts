@@ -1,9 +1,8 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Payrol from 'App/Models/Payrol'
-import axios from 'axios'
 
 export default class PayrolController {
-  public async index({ auth, month, year, request, response }: HttpContextContract) {
+  public async index({ auth, year, request, response }: HttpContextContract) {
     const query = await Payrol.query()
       .select('*', 'payrols.id')
       .where({

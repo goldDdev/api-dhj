@@ -112,8 +112,9 @@ export default class ProjectOvertimeController {
                   ( * ) 
                 FROM
                   project_workers a1
-                  INNER JOIN project_absents ON project_absents.employee_id = a1.employee_id AND project_absents.project_id = request_overtimes.project_id AND project_absents.absent_at = request_overtimes.absent_at
-                  INNER JOIN project_absents pa ON pa.employee_id = a1.employee_id AND pa.project_id = a1.project_id'
+                  INNER JOIN project_absents ON project_absents.employee_id = a1.employee_id 
+                  AND project_absents.project_id = request_overtimes.project_id 
+                  AND project_absents.absent_at = request_overtimes.absent_at
                 WHERE
                   a1.project_id = request_overtimes.project_id 
                   AND (
@@ -139,6 +140,13 @@ export default class ProjectOvertimeController {
     if (model.type === OTType.TEAM) {
       list = await ProjectWorker.query()
         .withScopes((scope) => scope.withEmployeeAbsent())
+        .joinRaw(
+          'INNER JOIN project_absents ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+        )
+        .where({
+          ['project_absents.absent_at']: model.absentAt,
+          ['project_absents.absent']: 'P',
+        })
         .andWhereRaw(
           '(project_workers.parent_id = (SELECT id FROM project_workers pw WHERE pw.employee_id = :employee_id AND pw.project_id = :project_id LIMIT 1 ) OR project_workers.id = ( SELECT id FROM project_workers pw WHERE pw.employee_id = :employee_id AND pw.project_id = :project_id LIMIT 1 ) )',
           {

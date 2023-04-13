@@ -22,7 +22,7 @@ export default class BoqsController {
       await request.validate({
         schema: vld.schema.create({
           name: vld.schema.string([vld.rules.minLength(3)]),
-          typeUnit: vld.schema.string([vld.rules.minLength(3)]),
+          typeUnit: vld.schema.string([vld.rules.minLength(1)]),
         }),
       })
 
@@ -51,7 +51,7 @@ export default class BoqsController {
       await request.validate({
         schema: vld.schema.create({
           name: vld.schema.string([vld.rules.minLength(3)]),
-          typeUnit: vld.schema.string([vld.rules.minLength(3)]),
+          typeUnit: vld.schema.string([vld.rules.minLength(1)]),
         }),
       })
 

@@ -1,7 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Project from 'App/Models/Project'
-// import Tracking from 'App/Models/Tracking'
 
 export default class TrackingsController {
   public async index({ request, response }: HttpContextContract) {

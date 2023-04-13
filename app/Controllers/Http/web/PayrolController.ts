@@ -2,7 +2,6 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Employee from 'App/Models/Employee'
-import ProjectAbsent from 'App/Models/ProjectAbsent'
 import Logger from '@ioc:Adonis/Core/Logger'
 import Payrol from 'App/Models/Payrol'
 export default class PayrolController {
@@ -62,10 +61,8 @@ export default class PayrolController {
     }
   }
 
-  public async employee({ auth, month, year, request, response }: HttpContextContract) {
+  public async employee({ month, year, request, response }: HttpContextContract) {
     const emp = await Employee.findOrFail(request.param('id'))
-    const query = await ProjectAbsent.query().where({ employee_id: request.param('id', 0) })
-
     const report = await Database.from('project_absents')
       .select(
         Database.raw('SUM(late_duration)::int AS "totalLateDuration"'),

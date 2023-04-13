@@ -1,9 +1,8 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Database from '@ioc:Adonis/Lucid/Database'
 import ProjectAbsent from 'App/Models/ProjectAbsent'
-import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
-import RequestOvertime, { RequestOTStatus } from 'App/Models/RequestOvertime'
-import Setting, { SettingCode } from 'App/Models/Setting'
+
+import { SettingCode } from 'App/Models/Setting'
 import codeError from 'Config/codeError'
 import { DateTime } from 'luxon'
 import moment from 'moment'

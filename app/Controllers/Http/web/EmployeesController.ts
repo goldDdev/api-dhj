@@ -1,5 +1,3 @@
-import { ProjectStatus } from './../../../Models/Project'
-// @ts-nocheck
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
@@ -103,7 +101,7 @@ export default class EmployeesController {
     return response.send({ data: query })
   }
 
-  public async view({ auth, request, response }: HttpContextContract) {
+  public async view({ request, response }: HttpContextContract) {
     try {
       const employee = await Employee.query()
         .where('id', request.param('id'))
@@ -118,7 +116,7 @@ export default class EmployeesController {
     }
   }
 
-  public async create({ auth, request, response }: HttpContextContract) {
+  public async create({ request, response }: HttpContextContract) {
     const trx = await Database.transaction()
     try {
       const payload = await request.validate({
@@ -166,7 +164,7 @@ export default class EmployeesController {
     }
   }
 
-  public async update({ auth, request, response }: HttpContextContract) {
+  public async update({ request, response }: HttpContextContract) {
     const trx = await Database.transaction()
     try {
       const payload = await request.validate({
@@ -228,7 +226,7 @@ export default class EmployeesController {
     }
   }
 
-  public async updateOptional({ auth, request, response }: HttpContextContract) {
+  public async updateOptional({ request, response }: HttpContextContract) {
     try {
       const payload = await request.validate({
         schema: schema.create({
@@ -249,7 +247,7 @@ export default class EmployeesController {
     }
   }
 
-  public async status({ auth, request, response }: HttpContextContract) {
+  public async status({ request, response }: HttpContextContract) {
     try {
       await request.validate({
         schema: schema.create({
@@ -322,7 +320,7 @@ export default class EmployeesController {
     }
   }
 
-  public async validation({ auth, request, response }: HttpContextContract) {
+  public async validation({ request, response }: HttpContextContract) {
     try {
       await request.validate({
         schema: schema.create({
@@ -370,7 +368,7 @@ export default class EmployeesController {
     }
   }
 
-  public async reportAbsent({ auth, request, response }: HttpContextContract) {
+  public async reportAbsent({ request, response }: HttpContextContract) {
     const query = await ProjectAbsent.query().where({ employee_id: request.param('id', 0) })
 
     const report = await Database.from('project_absents')

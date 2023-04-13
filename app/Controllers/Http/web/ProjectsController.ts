@@ -19,7 +19,7 @@ export default class ProjectsController {
           'location',
           'finishAt',
           'startAt',
-          'price'
+          'price',
         ])
         .orderBy('id', 'desc')
         .if(request.input('name'), (query) =>

@@ -253,12 +253,36 @@ export default class PayrolController {
         .groupBy('project_absents.employee_id', 'employees.salary', 'project_workers.role')
 
       const model = await Payrol.createMany(
-        absent.map((value) => ({
-          ...value,
-          month: payload.month,
-          year: payload.year,
-          total: value.salary + value.totalOvertimePrice - value.totalLatePrice,
-        }))
+        absent.map((value) => {
+          let otherCut = 0
+          let noteOtherCut = ''
+          let otherAdditional = 0
+          let noteOtherAdditional = 0
+
+          const find = payload.items.find((v) => v.id === value.employee_id)
+          if (find) {
+            otherCut = find.otherCut
+            noteOtherCut = find.noteOtherCut
+            otherAdditional = find.otherAdditional
+            noteOtherAdditional = find.noteOtherAdditional
+          }
+
+          return {
+            ...value,
+            month: payload.month,
+            year: payload.year,
+            total:
+              value.salary +
+              value.totalOvertimePrice +
+              otherAdditional -
+              (value.totalLatePrice + otherCut),
+
+            otherAdditional,
+            otherCut,
+            noteOtherAdditional,
+            noteOtherCut,
+          }
+        })
       )
 
       return response.json({ data: model })

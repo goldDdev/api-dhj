@@ -101,7 +101,7 @@ export default class Payrol extends BaseModel {
   @column({ columnName: 'note_other_cut', serializeAs: 'noteOtherCut' })
   public noteOtherCut: string
 
-  @column({ columnName: 'note_other_addtional', serializeAs: 'noteOtherAdditional' })
+  @column({ columnName: 'note_other_additional', serializeAs: 'noteOtherAdditional' })
   public noteOtherAdditional: string
 
   @column.dateTime({ autoCreate: true })

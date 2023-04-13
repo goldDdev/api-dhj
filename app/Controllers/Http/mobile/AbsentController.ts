@@ -307,14 +307,14 @@ export default class AbsentController {
         .andWhereNotNull('absent')
         .first()
 
-      const { hour, minute } = (await Database.from('settings')
+      const { hour, minute } = await Database.from('settings')
         .select(
           Database.raw(
             'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
           )
         )
         .where('code', SettingCode.CLOSE_TIME)
-        .first()) || { hour: 17, minute: 0 }
+        .first()
 
       const closeWork = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
 

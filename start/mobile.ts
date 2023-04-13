@@ -20,6 +20,12 @@ Route.group(() => {
     }).prefix('absent')
 
     Route.group(() => {
+      Route.get('/', 'PayrolController.index')
+      Route.get('/single', 'PayrolController.single')
+      Route.get('/:id', 'PayrolController.view')
+    }).prefix('payrol')
+
+    Route.group(() => {
       Route.get('/', 'ProjectsController.index')
       Route.get('/absent', 'ProjectsController.index')
       Route.get('/detail', 'ProjectsController.view')

@@ -8,6 +8,7 @@ import Logger from '@ioc:Adonis/Core/Logger'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import ProjectBoq from 'App/Models/ProjectBoq'
+import PlanBoq from 'App/Models/PlanBoq'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
@@ -82,6 +83,11 @@ export default class ProjectsController {
       await model.load('boqs', (query) => {
         query.joinRaw(
           "LEFT OUTER JOIN (SELECT DISTINCT ON (project_boq_id) project_boq_id, TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at, progres FROM project_progres ORDER BY project_boq_id, progres_at DESC) AS progress ON progress.project_boq_id = project_boqs.id"
+        )
+
+        query.joinRaw(
+          "LEFT OUTER JOIN (SELECT TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,  TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date, progress as plan_progres, employees.name AS plan_by, project_boq_id FROM plan_boqs INNER JOIN employees ON employees.id = plan_boqs.employee_id WHERE :date >= start_date AND :date <= end_date) AS planprogress ON planprogress.project_boq_id = project_boqs.id",
+          { date: now }
         )
         query.withScopes((scope) => {
           scope.withTotalProgress()
@@ -329,5 +335,49 @@ export default class ProjectsController {
       )
 
     return response.send(query)
+  }
+
+  public async planProgress({ auth, response, request }: HttpContextContract) {
+    try {
+      const payload = await request.validate({
+        schema: schema.create({
+          projectId: schema.number(),
+          projectBoqId: schema.number(),
+          progress: schema.number(),
+          startDate: schema.string(),
+          endDate: schema.string(),
+        }),
+      })
+
+      // const last = await ProjectProgres.query()
+      //   .where({
+      //     project_id: request.param('id'),
+      //     project_boq_id: payload.id,
+      //   })
+      //   .andWhere('progres_at', request.input('date', now))
+      //   .first()
+
+      // if (!last) {
+      //   isAvailable = true
+      // }
+
+      // if (isAvailable) {
+      await PlanBoq.create({
+        employeeId: auth.user!.employeeId,
+        projectId: payload.projectId,
+        projectBoqId: payload.projectBoqId,
+        progress: payload.progress,
+        startDate: payload.startDate,
+        endDate: payload.endDate,
+      })
+
+      return response.noContent()
+      // }
+
+      // return response.unprocessableEntity({ code: codeError.entity, type: 'exists' })
+    } catch (error) {
+      Logger.info(error)
+      return response.notFound({ code: codeError.badRequest, type: 'badRequest' })
+    }
   }
 }

@@ -38,6 +38,10 @@ Route.group(() => {
     }).prefix('project')
 
     Route.group(() => {
+      Route.post('/progress', 'ProjectsController.planProgress')
+    }).prefix('plan')
+
+    Route.group(() => {
       Route.post('/', 'AdditionalHourController.create')
       Route.put('/', 'AdditionalHourController.update')
       Route.get('/', 'AdditionalHourController.index')

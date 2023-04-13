@@ -152,12 +152,113 @@ export default class AbsentController {
           })
         }
       })
-
       return response.noContent()
     } catch (error) {
       Logger.info(error)
       return response.notFound({ code: codeError.notFound, type: 'notFound' })
     }
+  }
+
+  public async project({ auth, request, now, response }: HttpContextContract) {
+    if (request.input('projectId', []).length === 0) {
+      return response.unprocessableEntity({
+        code: codeError.entity,
+        type: 'required',
+        field: 'projectId',
+      })
+    }
+
+    if (!Array.isArray(request.input('projectId', []))) {
+      return response.unprocessableEntity({
+        code: codeError.entity,
+        type: 'required',
+        field: 'projectId',
+      })
+    }
+
+    const workers = await ProjectWorker.query()
+      .where({
+        status: ProjectWorkerStatus.ACTIVE,
+        employee_id: auth.user?.employeeId,
+      })
+      .andWhereIn('project_id', request.input('projectId'))
+
+    const { hour, minute } = await Database.from('settings')
+      .select(
+        Database.raw(
+          'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+        )
+      )
+      .where('code', SettingCode.START_TIME)
+      .first()
+
+    const { value: latePrice } = await Database.from('settings')
+      .where('code', SettingCode.LATETIME_PRICE_PER_MINUTE)
+      .first()
+
+    const comeAt = DateTime.local({ zone: 'UTC+7' }).toFormat('HH:mm')
+    const startWork = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
+    const lateDuration = Math.round(startWork.diffNow('minutes').minutes)
+
+    workers.forEach(async (value) => {
+      const findWork = await ProjectAbsent.query()
+        .withScopes((scopes) => scopes.withWorker())
+        .where({
+          absent_at: now,
+          ['project_absents.project_id']: value.projectId,
+          ['project_absents.employee_id']: auth.user?.employeeId,
+        })
+        .first()
+
+      if (!findWork) {
+        await ProjectAbsent.create({
+          absentAt: now,
+          absentBy: auth.user?.employeeId,
+          projectId: value.projectId,
+          employeeId: auth.user?.employeeId,
+          latitude: request.input('latitude', 0),
+          longitude: request.input('longitude', 0),
+          comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
+          lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
+          latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
+          absent: request.input('absent', 'P'),
+        })
+      }
+    })
+
+    return response.json({ workers, now, user: auth.user })
+  }
+
+  public async updateProject({ auth, request, time, response }: HttpContextContract) {
+    if (request.input('projectId', 0) === 0) {
+      return response.unprocessableEntity({
+        code: codeError.entity,
+        type: 'required',
+        field: 'projectId',
+      })
+    }
+
+    const model = await ProjectAbsent.query()
+      .where({
+        project_id: request.input('projectId'),
+        employee_id: auth.user?.employeeId,
+        absent: 'P',
+      })
+      .andWhereNull('close_at')
+      .andWhereNull('location_at')
+      .first()
+
+    if (model) {
+      await model
+        .merge({
+          locationAt: time,
+          latitude: request.input('latitude', model.latitude),
+          longitude: request.input('longitude', model.longitude),
+        })
+        .save()
+    }
+
+    return response.noContent()
   }
 
   public async addClose({ auth, request, now, response }: HttpContextContract) {

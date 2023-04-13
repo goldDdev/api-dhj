@@ -59,6 +59,7 @@ export default class ProjectsController {
           status: schema.enum.optional(Object.keys(ProjectStatus)),
           contact: schema.string.optional(),
           startAt: schema.date.optional({}, [rules.afterOrEqual('today')]),
+          targetDate: schema.string.optional(),
           finishAt: schema.date.optional({}, [rules.afterOrEqual('today')]),
           note: schema.string.optional(),
           location: schema.string.optional(),
@@ -75,7 +76,7 @@ export default class ProjectsController {
       await model.refresh()
 
       return response.created({
-        data: request.all(),
+        data: model.serialize(),
       })
     } catch (error) {
       return response.unprocessableEntity({ error })
@@ -103,6 +104,7 @@ export default class ProjectsController {
           contact: schema.string.optional(),
           startAt: schema.date.optional({}),
           finishAt: schema.date.optional({}),
+          targetDate: schema.string.optional(),
           note: schema.string.optional(),
           location: schema.string.optional(),
         }),
@@ -335,7 +337,7 @@ export default class ProjectsController {
         schema: schema.create({
           name: schema.string(),
           companyName: schema.string(),
-          noSpk: schema.string.optional([
+          noSpk: schema.string([
             rules.unique({
               table: 'projects',
               column: 'no_spk',
@@ -348,8 +350,6 @@ export default class ProjectsController {
           longitude: schema.number.optional(),
           status: schema.enum.optional(Object.keys(ProjectStatus)),
           contact: schema.string.optional(),
-          startAt: schema.date.optional({}, [rules.afterOrEqual('today')]),
-          finishAt: schema.date.optional({}, [rules.afterOrEqual('today')]),
           note: schema.string.optional(),
           location: schema.string.optional(),
         }),

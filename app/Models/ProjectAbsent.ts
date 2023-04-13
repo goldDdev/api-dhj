@@ -43,6 +43,9 @@ export default class ProjectAbsent extends BaseModel {
   @column({ columnName: 'close_at', serializeAs: 'closeAt' })
   public closeAt: string
 
+  @column({ columnName: 'location_at', serializeAs: 'locationAt' })
+  public locationAt: string
+
   @column({ columnName: 'late_duration', serializeAs: 'lateDuration', consume: (value) => +value })
   public lateDuration: number
 

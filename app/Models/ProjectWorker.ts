@@ -1,5 +1,13 @@
 import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, HasMany, belongsTo, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
+import {
+  BaseModel,
+  BelongsTo,
+  HasMany,
+  belongsTo,
+  column,
+  hasMany,
+  scope,
+} from '@ioc:Adonis/Lucid/Orm'
 import Employee from './Employee'
 import Project from 'App/Models/Project'
 
@@ -81,4 +89,16 @@ export default class ProjectWorker extends BaseModel {
       projecStatus: this.$extras.project_status,
     }
   }
+
+  public static withEmployeeAbsent = scope((query) => {
+    query
+      .select(
+        '*',
+        'project_workers.id',
+        'project_workers.role',
+        'employees.card_id as cardID',
+        'employees.phone_number as phoneNumber'
+      )
+      .join('employees', 'employees.id', '=', 'project_workers.employee_id')
+  })
 }

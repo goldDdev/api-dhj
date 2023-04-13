@@ -37,6 +37,9 @@ export default class Project extends BaseModel {
   @column.date({ columnName: 'finish_at', serializeAs: 'finishAt' })
   public finishAt: DateTime
 
+  @column({ columnName: 'target_date', serializeAs: 'targetDate' })
+  public targetDate: string
+
   @column({ columnName: 'duration', serializeAs: 'duration' })
   public duration: number
 

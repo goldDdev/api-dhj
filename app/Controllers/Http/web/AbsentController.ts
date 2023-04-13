@@ -1,5 +1,11 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Database from '@ioc:Adonis/Lucid/Database'
+import ProjectAbsent from 'App/Models/ProjectAbsent'
+import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
+import RequestOvertime, { RequestOTStatus } from 'App/Models/RequestOvertime'
+import Setting, { SettingCode } from 'App/Models/Setting'
+import codeError from 'Config/codeError'
+import { DateTime } from 'luxon'
 import moment from 'moment'
 
 export default class AbsentController {
@@ -78,5 +84,39 @@ export default class AbsentController {
         return group
       }, []),
     })
+  }
+
+  public async addClose({ now, time, response }: HttpContextContract) {
+    try {
+      await Database.table('runs').insert({
+        created_at: DateTime.now().setZone('UTC+7').toISO(),
+        updated_at: DateTime.now().setZone('UTC+7').toISO(),
+      })
+
+      const { hour, minute } = await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.CLOSE_TIME)
+        .first()
+
+      const closeWork = DateTime.fromObject(
+        { hour: hour, minute: minute },
+        { zone: 'UTC+7' }
+      ).toFormat('HH:mm')
+
+      if (time >= closeWork) {
+        await ProjectAbsent.query()
+          .where({ absent_at: now, absent: 'P' })
+          .andWhereNull('close_at')
+          .update({ closeAt: closeWork })
+      }
+
+      return response.noContent()
+    } catch (error) {
+      return response.notFound({ code: codeError.notFound, type: 'notFound', error })
+    }
   }
 }

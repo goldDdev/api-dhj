@@ -81,8 +81,12 @@ export default class ProjectsController {
 
       await model.load('boqs', (query) => {
         query.joinRaw(
-          "LEFT OUTER JOIN (SELECT DISTINCT ON (project_boq_id) project_boq_id, TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at, progres FROM project_progres ORDER BY project_boq_id, progres_at DESC) AS progres ON progres.project_boq_id = project_boqs.id"
+          "LEFT OUTER JOIN (SELECT DISTINCT ON (project_boq_id) project_boq_id, TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at, progres FROM project_progres ORDER BY project_boq_id, progres_at DESC) AS progress ON progress.project_boq_id = project_boqs.id"
         )
+        query.withScopes((scope) => {
+          scope.withTotalProgress()
+          scope.withTotalPending()
+        })
       })
 
       const models = await ProjectAbsent.query()

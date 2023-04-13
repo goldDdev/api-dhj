@@ -22,12 +22,10 @@ export default class ProjectBoqController {
         Database.raw('COALESCE(pending.total_pending, 0)::int AS total_pending')
       )
       .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
-      .joinRaw(
-        'LEFT OUTER JOIN (SELECT SUM(progres) as total_progres, project_boq_id FROM project_progres WHERE aproved_by IS NOT NULL GROUP BY project_boq_id) AS progres ON progres.project_boq_id = project_boqs.id'
-      )
-      .joinRaw(
-        'LEFT OUTER JOIN (SELECT COUNT(*) as total_pending, project_boq_id FROM project_progres WHERE aproved_by IS NULL GROUP BY project_boq_id) AS pending ON pending.project_boq_id = project_boqs.id'
-      )
+      .withScopes((scope) => {
+        scope.withTotalProgress()
+        scope.withTotalPending()
+      })
       .where('project_id', request.param('id'))
       .if(request.input('name'), (query) => {
         query.whereILike('project_boqs.name', `%${request.input('name')}%`)

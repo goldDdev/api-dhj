@@ -10,7 +10,6 @@ export enum AdditionalStatus {
   REJECT = 'REJECT',
   PENDING = 'PENDING',
 }
-
 export default class AdditionalHour extends BaseModel {
   public static table = 'additional_hours'
 
@@ -22,6 +21,12 @@ export default class AdditionalHour extends BaseModel {
 
   @column({ columnName: 'project_id', serializeAs: 'projectId' })
   public projectId: number
+
+  @column({ columnName: 'parent_id', serializeAs: 'parentId' })
+  public parentId: number
+
+  @column({ columnName: 'request_id', serializeAs: 'requestId' })
+  public requestId: number
 
   @column({
     columnName: 'absent_at',
@@ -35,6 +40,9 @@ export default class AdditionalHour extends BaseModel {
 
   @column({ columnName: 'close_at', serializeAs: 'closeAt' })
   public closeAt: string
+
+  @column()
+  public type: string
 
   @column({
     columnName: 'overtime_duration',

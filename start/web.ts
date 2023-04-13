@@ -2,6 +2,7 @@ import Route from '@ioc:Adonis/Core/Route'
 
 Route.group(() => {
   Route.post('/login', 'AuthController.login')
+  Route.get('/schedule/close', 'AbsentController.addClose')
 
   Route.group(() => {
     Route.group(() => {
@@ -43,7 +44,9 @@ Route.group(() => {
       Route.post('/boq', 'ProjectBoqController.create')
       Route.put('/boq', 'ProjectBoqController.update')
       Route.put('/boq/value', 'ProjectBoqController.updateValue')
+      Route.put('/overtime', 'ProjectOvertimeController.update')
       Route.put('/overtime/status', 'ProjectOvertimeController.status')
+      Route.get('/overtime/:id', 'ProjectOvertimeController.view')
       Route.get('/:id/:parent/absent', 'ProjectsController.viewAbsent')
       Route.get('/:id/absent', 'ProjectsController.absent')
       Route.get('/:id', 'ProjectsController.view')

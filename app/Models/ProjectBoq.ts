@@ -1,5 +1,13 @@
 import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, HasMany, belongsTo, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
+import {
+  BaseModel,
+  BelongsTo,
+  HasMany,
+  belongsTo,
+  column,
+  hasMany,
+  scope,
+} from '@ioc:Adonis/Lucid/Orm'
 import Project from './Project'
 import Boq from './Boq'
 import ProjectProgres from './ProjectProgres'
@@ -61,10 +69,22 @@ export default class ProjectBoq extends BaseModel {
 
   public serializeExtras() {
     return {
-      totalProgres: this.$extras.total_progres,
-      totalPending: this.$extras.total_pending,
+      totalProgres: +this.$extras.total_progres,
+      totalPending: +this.$extras.total_pending,
       lastProgresAt: this.$extras.progres_at,
-      lastProgres: this.$extras.progres,
+      lastProgres: +this.$extras.progres,
     }
   }
+
+  public static withTotalProgress = scope((query) => {
+    query.joinRaw(
+      'LEFT OUTER JOIN (SELECT SUM(progres) as total_progres, project_boq_id FROM project_progres WHERE aproved_by IS NOT NULL GROUP BY project_boq_id) AS progres ON progres.project_boq_id = project_boqs.id'
+    )
+  })
+
+  public static withTotalPending = scope((query) => {
+    query.joinRaw(
+      'LEFT OUTER JOIN (SELECT COUNT(*) as total_pending, project_boq_id FROM project_progres WHERE aproved_by IS NULL GROUP BY project_boq_id) AS pending ON pending.project_boq_id = project_boqs.id'
+    )
+  })
 }

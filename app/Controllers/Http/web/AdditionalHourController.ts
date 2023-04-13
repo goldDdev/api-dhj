@@ -114,8 +114,9 @@ export default class ProjectsController {
           employeeId: schema.number(),
           projectId: schema.number(),
           absentAt: schema.string(),
-          comeAt: schema.string(),
-          closeAt: schema.string(),
+          comeAt: schema.string.optional(),
+          closeAt: schema.string.optional(),
+          duration: schema.number(),
           note: schema.string.optional(),
         }),
       })

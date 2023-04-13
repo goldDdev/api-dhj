@@ -10,6 +10,11 @@ export enum RequestOTStatus {
   PENDING = 'PENDING',
 }
 
+export enum OTType {
+  PERSONAL = 'PERSONAL',
+  TEAM = 'TEAM',
+}
+
 export default class RequestOvertime extends BaseModel {
   public static table = 'request_overtimes'
 
@@ -55,6 +60,12 @@ export default class RequestOvertime extends BaseModel {
   @column({ columnName: 'action_by', serializeAs: 'actionBy' })
   public actionBy: number
 
+  @column({ columnName: 'request_by', serializeAs: 'requestBy' })
+  public requestBy: number
+
+  @column()
+  public type: string
+
   @column()
   public status: string
 
@@ -88,6 +99,9 @@ export default class RequestOvertime extends BaseModel {
   public serializeExtras() {
     return {
       requestName: this.$extras.request_name,
+      requestRole: this.$extras.request_role,
+      employeeName: this.$extras.employee_name,
+      employeeRole: this.$extras.employee_role,
       cardID: this.$extras.card_id,
       phoneNumber: this.$extras.phone_number,
       role: this.$extras.role,

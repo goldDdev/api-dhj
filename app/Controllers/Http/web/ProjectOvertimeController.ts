@@ -7,8 +7,10 @@ import { schema } from '@ioc:Adonis/Core/Validator'
 import Setting, { SettingCode } from 'App/Models/Setting'
 import AdditionalHour, { AdditionalStatus } from 'App/Models/AdditionalHour'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
-import RequestOvertime, { RequestOTStatus } from 'App/Models/RequestOvertime'
+import RequestOvertime, { OTType, RequestOTStatus } from 'App/Models/RequestOvertime'
 import ProjectAbsent from 'App/Models/ProjectAbsent'
+import Employee from 'App/Models/Employee'
+import Logger from '@ioc:Adonis/Core/Logger'
 
 export default class ProjectOvertimeController {
   public async index({ response, request }: HttpContextContract) {
@@ -16,26 +18,41 @@ export default class ProjectOvertimeController {
       .select(
         '*',
         'request_overtimes.id',
+        'employees.role AS request_role',
         'request_overtimes.status',
         'projects.name AS project_name',
         'projects.status AS project_status',
         'employees.name AS request_name',
+        'emp.name AS employee_name',
+        'emp.role AS employee_role',
         Database.raw(
-          `(SELECT 
-            COUNT(*)
-          FROM project_workers a1 
-          INNER JOIN 
-            project_absents ON project_absents.employee_id = a1.employee_id  AND project_absents.project_id = request_overtimes.project_id AND project_absents.absent_at = request_overtimes.absent_at
-          WHERE 
-            a1.project_id = request_overtimes.project_id 
-            AND a1.parent_id = (SELECT id FROM project_workers WHERE project_workers.employee_id = request_overtimes.employee_id LIMIT 1) 
-            AND a1.status = 'ACTIVE' 
-            AND project_absents.absent = 'P')::int 
-          AS total_worker`
+          `(
+            CASE
+                WHEN request_overtimes.TYPE = 'PERSONAL' THEN
+                1 ELSE (
+                SELECT COUNT
+                  ( * ) 
+                FROM
+                  project_workers a1
+                  INNER JOIN project_absents ON project_absents.employee_id = a1.employee_id 
+                  AND project_absents.project_id = request_overtimes.project_id 
+                  AND project_absents.absent_at = request_overtimes.absent_at 
+                WHERE
+                  a1.project_id = request_overtimes.project_id 
+                  AND (
+                    a1.parent_id = ( SELECT id FROM project_workers WHERE project_workers.employee_id = request_overtimes.employee_id AND project_workers.project_id = request_overtimes.project_id LIMIT 1 ) 
+                    OR a1.id = ( SELECT id FROM project_workers WHERE project_workers.employee_id = request_overtimes.employee_id AND project_workers.project_id = request_overtimes.project_id LIMIT 1 ) 
+                  ) 
+                  AND a1.status = 'ACTIVE' 
+                  AND project_absents.ABSENT = 'P' 
+                ) 
+            END 
+            ) :: INT AS total_worker`
         )
       )
       .join('projects', 'projects.id', '=', 'request_overtimes.project_id')
-      .join('employees', 'employees.id', '=', 'request_overtimes.employee_id')
+      .join('employees', 'employees.id', '=', 'request_overtimes.request_by')
+      .join('employees as emp', 'emp.id', '=', 'request_overtimes.employee_id')
       .preload('actionEmployee')
       .whereRaw('EXTRACT(MONTH FROM absent_at) = :month ', {
         month: request.input('month', moment().month() + 1),
@@ -75,43 +92,67 @@ export default class ProjectOvertimeController {
   }
 
   public async view({ request, response }: HttpContextContract) {
-    const model = await AdditionalHour.query()
+    const model = await RequestOvertime.query()
       .select(
         '*',
-        'employees.name',
-        Database.raw("TO_CHAR(absent_at, 'YYYY-MM-DD') as absent_at"),
-        'additional_hours.id',
-        'employees.card_id as cardID',
-        'employees.phone_number as phoneNumber',
-        'additional_hours.project_id'
+        'employees.role AS request_role',
+        'request_overtimes.id',
+        'request_overtimes.status',
+        'projects.name AS project_name',
+        'projects.status AS project_status',
+        'employees.name AS request_name',
+        'emp.name AS employee_name',
+        'emp.role AS employee_role',
+        Database.raw(
+          `(
+            CASE
+                WHEN request_overtimes.TYPE = 'PERSONAL' THEN
+                1 ELSE (
+                SELECT COUNT
+                  ( * ) 
+                FROM
+                  project_workers a1
+                  INNER JOIN project_absents ON project_absents.employee_id = a1.employee_id 
+                  AND project_absents.project_id = request_overtimes.project_id 
+                  AND project_absents.absent_at = request_overtimes.absent_at 
+                WHERE
+                  a1.project_id = request_overtimes.project_id 
+                  AND (
+                    a1.parent_id = ( SELECT id FROM project_workers WHERE project_workers.employee_id = request_overtimes.employee_id AND project_workers.project_id = request_overtimes.project_id LIMIT 1 ) 
+                    OR a1.id = ( SELECT id FROM project_workers WHERE project_workers.employee_id = request_overtimes.employee_id AND project_workers.project_id = request_overtimes.project_id LIMIT 1 ) 
+                  ) 
+                  AND a1.status = 'ACTIVE' 
+                  AND project_absents.ABSENT = 'P' 
+                ) 
+            END 
+            ) :: INT AS total_worker`
+        )
       )
-      .join('employees', 'employees.id', '=', 'additional_hours.employee_id')
+      .join('projects', 'projects.id', '=', 'request_overtimes.project_id')
+      .join('employees', 'employees.id', '=', 'request_overtimes.request_by')
+      .join('employees as emp', 'emp.id', '=', 'request_overtimes.employee_id')
       .preload('actionEmployee')
-      .preload('project')
-      .where('additional_hours.id', request.param('id'))
+      .where('request_overtimes.id', request.param('id'))
       .firstOrFail()
 
-    return response.ok(
-      model.serialize({
-        relations: {
-          actionEmployee: {
-            fields: {
-              pick: ['name', 'cardID', 'role'],
-            },
-          },
-          requestEmployee: {
-            fields: {
-              pick: ['name', 'cardID', 'role'],
-            },
-          },
-          project: {
-            fields: {
-              pick: ['name', 'status', 'companyName'],
-            },
-          },
-        },
-      })
-    )
+    let list: any[] = []
+
+    if (model.type === OTType.TEAM) {
+      list = await ProjectWorker.query()
+        .withScopes((scope) => scope.withEmployeeAbsent())
+        .andWhereRaw(
+          '(project_workers.parent_id = (SELECT id FROM project_workers pw WHERE pw.employee_id = :employee_id AND pw.project_id = :project_id LIMIT 1 ) OR project_workers.id = ( SELECT id FROM project_workers pw WHERE pw.employee_id = :employee_id AND pw.project_id = :project_id LIMIT 1 ) )',
+          {
+            employee_id: model.employeeId,
+            project_id: model.projectId,
+          }
+        )
+    } else {
+      const emp = await Employee.findOrFail(model.employeeId)
+      list.push(emp)
+    }
+
+    return response.ok({ data: { ...model.serialize(), employees: list } })
   }
 
   public async create({ auth, request, response }: HttpContextContract) {
@@ -174,42 +215,24 @@ export default class ProjectOvertimeController {
       const payload = await request.validate({
         schema: schema.create({
           id: schema.number(),
-          absentAt: schema.string(),
-          comeAt: schema.string(),
-          closeAt: schema.string(),
-          note: schema.string.optional(),
+          duration: schema.number(),
         }),
       })
-      const startTime = DateTime.fromFormat(
-        `${payload.absentAt} ${payload.comeAt}`,
-        'yyyy-mm-dd HH:mm',
-        {
-          zone: 'Asia/Jakarta',
-        }
-      )
 
-      const endTime = DateTime.fromFormat(
-        `${payload.absentAt} ${payload.closeAt}`,
-        'yyyy-mm-dd HH:mm',
-        {
-          zone: 'Asia/Jakarta',
-        }
-      )
-
-      const overtimeDuration = endTime.diff(startTime, 'minutes').minutes
-      const model = await AdditionalHour.findOrFail(payload.id)
-      if (model.status !== AdditionalStatus.PENDING) {
+      const model = await RequestOvertime.findOrFail(payload.id)
+      if (model.status !== RequestOTStatus.PENDING) {
         return response.forbidden({ coder: codeError.forbidden, type: 'forbidden' })
       }
       model
         .merge({
-          ...payload,
-          overtimeDuration,
-          totalEarn: overtimeDuration * model.overtimePrice,
+          overtimeDuration: payload.duration,
+          totalEarn: (payload.duration / 60) * model.overtimePrice,
         })
         .save()
       return response.ok(model.serialize())
-    } catch (error) {}
+    } catch (error) {
+      return response.unprocessableEntity(error)
+    }
   }
 
   public async status({ auth, request, response }: HttpContextContract) {
@@ -231,7 +254,7 @@ export default class ProjectOvertimeController {
             'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
           )
           .where('project_absents.project_id', model.projectId)
-          .andWhere({ absent_at: model.absentAt, parent_id: model.employee.work.id, absent: 'P' })
+          .andWhere({ absent_at: model.absentAt, absent: 'P' })
 
         await AdditionalHour.createMany(
           absents.map((v) => ({
@@ -246,6 +269,8 @@ export default class ProjectOvertimeController {
             requestBy: model.id,
             actionBy: auth.user?.employeeId,
             status: RequestOTStatus.CONFIRM,
+            parentId: model.id,
+            type: 'PERSONAL',
           }))
         )
       }
@@ -256,6 +281,7 @@ export default class ProjectOvertimeController {
 
       return response.ok({ data: model.serialize() })
     } catch (error) {
+      Logger.info(error)
       return response.unprocessableEntity(error)
     }
   }

@@ -19,6 +19,7 @@ export default class ProjectsController {
           'location',
           'finishAt',
           'startAt',
+          'price'
         ])
         .orderBy('id', 'desc')
         .if(request.input('name'), (query) =>
@@ -54,6 +55,7 @@ export default class ProjectsController {
               column: 'no_spk',
             }),
           ]),
+          price: schema.number.optional(),
           latitude: schema.number.optional(),
           longitude: schema.number.optional(),
           status: schema.enum.optional(Object.keys(ProjectStatus)),
@@ -98,6 +100,7 @@ export default class ProjectsController {
               },
             }),
           ]),
+          price: schema.number.optional(),
           latitude: schema.number.optional(),
           longitude: schema.number.optional(),
           status: schema.enum.optional(Object.keys(ProjectStatus)),

@@ -2,8 +2,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Employee from 'App/Models/Employee'
-import ProjectAbsent from 'App/Models/ProjectAbsent'
-import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
+import ProjectWorker from 'App/Models/ProjectWorker'
 import RequestOvertime, { OTType, RequestOTStatus } from 'App/Models/RequestOvertime'
 import Setting, { SettingCode } from 'App/Models/Setting'
 import codeError from 'Config/codeError'
@@ -80,7 +79,7 @@ export default class AdditionalHourController {
     )
   }
 
-  public async view({ auth, request, response }: HttpContextContract) {
+  public async view({ request, response }: HttpContextContract) {
     const model = await RequestOvertime.query()
       .select(
         '*',

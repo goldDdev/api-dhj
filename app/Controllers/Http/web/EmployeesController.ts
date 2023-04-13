@@ -369,8 +369,6 @@ export default class EmployeesController {
   }
 
   public async reportAbsent({ request, response }: HttpContextContract) {
-    const query = await ProjectAbsent.query().where({ employee_id: request.param('id', 0) })
-
     const report = await Database.from('project_absents')
       .select(
         Database.raw('SUM(late_duration)::int AS "totalLateDuration"'),

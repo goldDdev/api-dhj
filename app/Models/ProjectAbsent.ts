@@ -3,8 +3,6 @@ import { BaseModel, BelongsTo, belongsTo, column, scope } from '@ioc:Adonis/Luci
 import Employee from './Employee'
 import Project from './Project'
 import moment from 'moment'
-import Database from '@ioc:Adonis/Lucid/Database'
-import User from './User'
 
 export enum AbsentType {
   A = 'A',

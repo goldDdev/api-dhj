@@ -112,9 +112,8 @@ export default class ProjectOvertimeController {
                   ( * ) 
                 FROM
                   project_workers a1
-                  INNER JOIN project_absents ON project_absents.employee_id = a1.employee_id 
-                  AND project_absents.project_id = request_overtimes.project_id 
-                  AND project_absents.absent_at = request_overtimes.absent_at 
+                  INNER JOIN project_absents ON project_absents.employee_id = a1.employee_id AND project_absents.project_id = request_overtimes.project_id AND project_absents.absent_at = request_overtimes.absent_at
+                  INNER JOIN project_absents pa ON pa.employee_id = a1.employee_id AND pa.project_id = a1.project_id'
                 WHERE
                   a1.project_id = request_overtimes.project_id 
                   AND (

@@ -4,7 +4,7 @@ import { schema } from '@ioc:Adonis/Core/Validator'
 import codeError from 'Config/codeError'
 import Tracking from 'App/Models/Tracking'
 
-export default class ProjectsController {
+export default class TrackingController {
   public async create({ auth, request, response }: HttpContextContract) {
     const trx = await Database.transaction()
     try {

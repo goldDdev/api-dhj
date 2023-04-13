@@ -46,6 +46,11 @@ Route.group(() => {
     }).prefix('additional')
 
     Route.group(() => {
+      Route.get('/material', 'InventoryController.listMaterial')
+      Route.get('/equipment', 'InventoryController.listEquipment')
+    }).prefix('inventory')
+
+    Route.group(() => {
       Route.post('/', 'TrackingController.create')
     }).prefix('tracking')
 

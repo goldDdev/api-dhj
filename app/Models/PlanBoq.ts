@@ -49,6 +49,11 @@ export default class PlanBoq extends BaseModel {
   }
 
   public static withEmployee = scope((query) => {
-    query.join('employees', 'employees.id', '=', 'plan_boqs.employee_id')
+    query.leftJoin('employees', 'employees.id', '=', 'plan_boqs.employee_id')
+  })
+
+  public static withProjectBoqs = scope((query) => {
+    query.leftJoin('project_boqs', 'project_boqs.id', 'plan_boqs.project_boq_id')
+    query.leftJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
   })
 }

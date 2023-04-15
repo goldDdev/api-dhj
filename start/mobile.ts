@@ -32,6 +32,7 @@ Route.group(() => {
       Route.get('/test', 'ProjectsController.test')
       Route.get('/:id/boq', 'ProjectsController.listBoq')
       Route.get('/:id/progres', 'ProjectsController.listProgres')
+      Route.get('/:id/plan', 'ProjectsController.listPlan')
       Route.get('/:id', 'ProjectsController.view')
       Route.post('/scoping', 'ProjectsController.scoping')
       Route.post('/:id/progres', 'ProjectsController.progres')

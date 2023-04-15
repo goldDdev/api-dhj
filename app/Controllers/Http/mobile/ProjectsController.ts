@@ -81,15 +81,9 @@ export default class ProjectsController {
       })
 
       await model.load('boqs', (query) => {
-        query.joinRaw(
-          "LEFT OUTER JOIN (SELECT DISTINCT ON (project_boq_id) project_boq_id, TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at, progres FROM project_progres ORDER BY project_boq_id, progres_at DESC) AS progress ON progress.project_boq_id = project_boqs.id"
-        )
-
-        query.joinRaw(
-          "LEFT OUTER JOIN (SELECT TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,  TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date, progress as plan_progres, employees.name AS plan_by, project_boq_id FROM plan_boqs INNER JOIN employees ON employees.id = plan_boqs.employee_id WHERE :date >= start_date AND :date <= end_date) AS planprogress ON planprogress.project_boq_id = project_boqs.id",
-          { date: now }
-        )
         query.withScopes((scope) => {
+          scope.withLastProgres()
+          scope.withLastPlan(now)
           scope.withTotalProgress()
           scope.withTotalPending()
         })
@@ -277,7 +271,7 @@ export default class ProjectsController {
     }
   }
 
-  public async listProgres({ response, request }: HttpContextContract) {
+  public async listProgres({ response, request, month, year }: HttpContextContract) {
     const query = await ProjectProgres.query()
       .select(
         'project_progres.id',
@@ -296,46 +290,84 @@ export default class ProjectsController {
       .if(request.input('date'), (query) => {
         query.andWhere('project_progres.progres_at', request.input('date'))
       })
+      .if(
+        request.input('month'),
+        (query) => {
+          query.andWhereRaw('EXTRACT(MONTH FROM project_progres.progres_at) = :month ', {
+            month: request.input('month'),
+          })
+        },
+        (query) =>
+          query.andWhereRaw('EXTRACT(MONTH FROM project_progres.progres_at) = :month ', {
+            month: month,
+          })
+      )
+      .if(
+        request.input('year'),
+        (query) => {
+          query.andWhereRaw('EXTRACT(YEAR FROM project_progres.progres_at) = :year ', {
+            year: request.input('year'),
+          })
+        },
+        (query) =>
+          query.andWhereRaw('EXTRACT(YEAR FROM project_progres.progres_at) = :year ', {
+            year: year,
+          })
+      )
       .orderBy(request.input('orderBy', 'project_progres.id'), request.input('order', 'desc'))
+      .paginate(request.input('page', 1), request.input('perPage', 15))
 
-    return response.ok(query)
+    return response.ok(query.serialize().data)
   }
 
-  public async listBoq({ response, request }: HttpContextContract) {
-    const query = await ProjectBoq.query()
-      .select(
-        'project_boqs.name',
-        'project_boqs.id',
-        'project_boqs.boq_id',
-        'price',
-        'unit',
-        'project_boqs.type_unit',
-        'project_boqs.updated_at',
-        'progres.progres_at',
-        'progres.progres'
-      )
-      .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
-      .joinRaw(
-        "LEFT JOIN (SELECT TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at,progres,project_boq_id FROM project_progres ORDER BY progres_at DESC) AS progres ON progres.project_boq_id = project_boqs.id"
-      )
-      .where('project_id', request.param('id'))
-      .if(request.input('name'), (query) => {
-        query.whereILike('project_boqs.name', `%${request.input('name')}%`)
-      })
-      .if(
-        request.input('orderBy'),
-        (query) => {
-          query.orderBy('project_boqs.name', request.input('order', 'asc'))
-        },
-        (query) => {
-          query.orderBy(
-            `project_boqs.${request.input('orderBy', 'id')}`,
-            request.input('order', 'asc')
-          )
-        }
-      )
-
-    return response.send(query)
+  public async listBoq({ now, response, request }: HttpContextContract) {
+    try {
+      const query = await ProjectBoq.query()
+        .select(
+          'project_boqs.name',
+          'project_boqs.id',
+          'project_boqs.boq_id',
+          'price',
+          'unit',
+          'project_boqs.type_unit',
+          'project_boqs.updated_at',
+          Database.raw('COALESCE(progres.total_progres, 0)::int AS total_progres'),
+          Database.raw('COALESCE(pending.total_pending, 0)::int AS total_pending'),
+          'plan_progres',
+          'plan_by',
+          'start_date',
+          'end_date',
+          'progres',
+          'progres_at',
+          'progres_by'
+        )
+        .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
+        .withScopes((scope) => {
+          scope.withLastProgres()
+          scope.withLastPlan(now)
+          scope.withTotalProgress()
+          scope.withTotalPending()
+        })
+        .where('project_id', request.param('id'))
+        .if(request.input('name'), (query) => {
+          query.whereILike('project_boqs.name', `%${request.input('name')}%`)
+        })
+        .if(
+          request.input('orderBy'),
+          (query) => {
+            query.orderBy('project_boqs.name', request.input('order', 'asc'))
+          },
+          (query) => {
+            query.orderBy(
+              `project_boqs.${request.input('orderBy', 'id')}`,
+              request.input('order', 'asc')
+            )
+          }
+        )
+      return response.ok(query)
+    } catch (error) {
+      return response.badRequest(error)
+    }
   }
 
   public async planProgress({ auth, response, request }: HttpContextContract) {
@@ -380,5 +412,76 @@ export default class ProjectsController {
       Logger.info(error)
       return response.notFound({ code: codeError.badRequest, type: 'badRequest' })
     }
+  }
+
+  public async listPlan({ auth, response, request, month, year }: HttpContextContract) {
+    const query = await PlanBoq.query()
+      .select(
+        'plan_boqs.project_boq_id',
+        'plan_boqs.id',
+        'project_boqs.name',
+        'start_date',
+        'end_date',
+        'project_boqs.type_unit',
+        'progress',
+        'employee_id'
+      )
+
+      .withScopes((scope) => {
+        scope.withProjectBoqs()
+        scope.withEmployee()
+      })
+      .if(request.input('name'), (query) => {
+        query.whereILike('project_boqs.name', `%${request.input('name')}%`)
+      })
+
+      .if(
+        request.input('all'),
+        (query) => {},
+        (query) => {
+          query.andWhere('employee_id', auth.user!.employeeId)
+        }
+      )
+      .if(
+        request.input('month'),
+        (query) => {
+          query.andWhereRaw(
+            '(EXTRACT(MONTH FROM start_date) = :month OR EXTRACT(MONTH FROM end_date) = :month)',
+            {
+              month: request.input('month'),
+            }
+          )
+        },
+        (query) =>
+          query.andWhereRaw(
+            '(EXTRACT(MONTH FROM start_date) = :month OR EXTRACT(MONTH FROM end_date) = :month)',
+            {
+              month: month,
+            }
+          )
+      )
+      .if(
+        request.input('year'),
+        (query) => {
+          query.andWhereRaw(
+            '(EXTRACT(YEAR FROM start_date) = :year OR EXTRACT(YEAR FROM end_date) = :year)',
+            {
+              year: request.input('year'),
+            }
+          )
+        },
+        (query) =>
+          query.andWhereRaw(
+            '(EXTRACT(YEAR FROM start_date) = :year OR EXTRACT(YEAR FROM end_date) = :year)',
+            {
+              year: year,
+            }
+          )
+      )
+
+      .orderBy(request.input('orderBy', 'plan_boqs.id'), request.input('order', 'desc'))
+      .paginate(request.input('page', 1), request.input('perPage', 15))
+
+    return response.ok(query.serialize().data)
   }
 }

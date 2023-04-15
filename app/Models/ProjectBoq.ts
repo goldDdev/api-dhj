@@ -76,6 +76,7 @@ export default class ProjectBoq extends BaseModel {
       totalPending: +this.$extras.total_pending,
       lastProgresAt: this.$extras.progres_at,
       lastProgres: +this.$extras.progres,
+      progresBy: this.$extras.progres_by,
       planStart: this.$extras.start_date,
       planEnd: this.$extras.end_date,
       planProgres: +this.$extras.plan_progres,
@@ -92,6 +93,19 @@ export default class ProjectBoq extends BaseModel {
   public static withTotalPending = scope((query) => {
     query.joinRaw(
       'LEFT OUTER JOIN (SELECT COUNT(*) as total_pending, project_boq_id FROM project_progres WHERE aproved_by IS NULL GROUP BY project_boq_id) AS pending ON pending.project_boq_id = project_boqs.id'
+    )
+  })
+
+  public static withLastProgres = scope((query) => {
+    query.joinRaw(
+      "LEFT OUTER JOIN (SELECT DISTINCT ON (project_boq_id) project_boq_id, TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at, progres, employees.name AS progres_by FROM project_progres LEFT JOIN employees ON employees.id = project_progres.employee_id ORDER BY project_boq_id, progres_at DESC) AS progress ON progress.project_boq_id = project_boqs.id"
+    )
+  })
+
+  public static withLastPlan = scope((query, now: string) => {
+    query.joinRaw(
+      "LEFT OUTER JOIN (SELECT TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,  TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date, progress as plan_progres, employees.name AS plan_by, project_boq_id FROM plan_boqs INNER JOIN employees ON employees.id = plan_boqs.employee_id WHERE :date >= start_date AND :date <= end_date) AS planprogress ON planprogress.project_boq_id = project_boqs.id",
+      { date: now }
     )
   })
 }

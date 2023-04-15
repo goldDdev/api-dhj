@@ -9,6 +9,9 @@ export default class ProjectProgres extends BaseModel {
   @column({ columnName: 'project_id', serializeAs: 'projectId' })
   public projectId: number
 
+  @column({ columnName: 'employee_id', serializeAs: 'employeeId' })
+  public employeeId: number
+
   @column({ columnName: 'project_boq_id', serializeAs: 'projectBoqId' })
   public projectBoqId: number
 

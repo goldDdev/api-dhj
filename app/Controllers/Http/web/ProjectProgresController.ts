@@ -5,6 +5,7 @@ import moment from 'moment'
 import ProjectBoq from 'App/Models/ProjectBoq'
 import { schema } from '@ioc:Adonis/Core/Validator'
 import { DateTime } from 'luxon'
+import PlanBoq from 'App/Models/PlanBoq'
 
 export default class ProjectProgresController {
   public async index({ response, request }: HttpContextContract) {
@@ -94,6 +95,47 @@ export default class ProjectProgresController {
         query.andWhere('project_absents.project_id', request.input('id'))
       })
 
+    const queryPlan = await PlanBoq.query()
+      .select('*', 'plan_boqs.id')
+      .withScopes((scope) => scope.withEmployee())
+      .where('plan_boqs.project_id', request.param('id'))
+      .if(
+        request.input('month'),
+        (query) => {
+          query.andWhereRaw(
+            '(EXTRACT(MONTH FROM start_date) = :month OR EXTRACT(MONTH FROM end_date) = :month)',
+            {
+              month: request.input('month'),
+            }
+          )
+        },
+        (query) =>
+          query.andWhereRaw(
+            '(EXTRACT(MONTH FROM start_date) = :month OR EXTRACT(MONTH FROM end_date) = :month)',
+            {
+              month: month,
+            }
+          )
+      )
+      .if(
+        request.input('year'),
+        (query) => {
+          query.andWhereRaw(
+            '(EXTRACT(YEAR FROM start_date) = :year OR EXTRACT(YEAR FROM end_date) = :year)',
+            {
+              year: request.input('year'),
+            }
+          )
+        },
+        (query) =>
+          query.andWhereRaw(
+            '(EXTRACT(YEAR FROM start_date) = :year OR EXTRACT(YEAR FROM end_date) = :year)',
+            {
+              year: year,
+            }
+          )
+      )
+
     const newData = query.map((n) => ({
       id: n.id,
       createdAt: n.created_at,
@@ -106,10 +148,28 @@ export default class ProjectProgresController {
       day: +moment(n.progres_at).format('D'),
     }))
 
+    const newPlan = queryPlan.reduce((p: any[], n) => {
+      const startAt = DateTime.fromFormat(n.startDate, 'yyyy-MM-dd')
+      const diff = DateTime.fromFormat(n.endDate, 'yyyy-MM-dd').diff(
+        DateTime.fromFormat(n.startDate, 'yyyy-MM-dd'),
+        'day'
+      ).days
+
+      for (let i = 0; i <= diff; i++) {
+        const day = startAt.plus({ day: i })
+        const dayMonth = day.month
+        if (dayMonth === +request.input('month', month)) {
+          p.push({ ...n.serialize(), day: day.day })
+        }
+      }
+      return p
+    }, [])
+
     return response.ok({
       data: boq.map((v) => ({
         ...v.serialize(),
         data: newData.filter((f) => f.projectBoqId === v.id),
+        plans: newPlan.filter((f) => f.projectBoqId === v.id),
       })),
     })
   }

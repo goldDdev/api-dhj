@@ -265,6 +265,7 @@ export default class ProjectsController {
           submitedProgres: payload.progres,
           submitedBy: auth.user?.id,
           progresAt: request.input('date', now),
+          employeeId: auth.user?.employeeId,
         })
         return response.noContent()
       }

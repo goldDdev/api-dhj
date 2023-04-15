@@ -6,7 +6,7 @@ import ProjectBoq from 'App/Models/ProjectBoq'
 import ProjectProgres from 'App/Models/ProjectProgres'
 
 export default class ProjectBoqController {
-  public async index({ response, request }: HttpContextContract) {
+  public async index({ now, response, request }: HttpContextContract) {
     const query = await ProjectBoq.query()
       .select(
         'project_boqs.name',
@@ -19,10 +19,19 @@ export default class ProjectBoqController {
         'additionalPrice',
         'project_boqs.updated_at',
         Database.raw('COALESCE(progres.total_progres, 0)::int AS total_progres'),
-        Database.raw('COALESCE(pending.total_pending, 0)::int AS total_pending')
+        Database.raw('COALESCE(pending.total_pending, 0)::int AS total_pending'),
+        'plan_progres',
+        'plan_by',
+        'start_date',
+        'end_date',
+        'progres',
+        'progres_at',
+        'progres_by'
       )
       .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
       .withScopes((scope) => {
+        scope.withLastProgres()
+        scope.withLastPlan(now)
         scope.withTotalProgress()
         scope.withTotalPending()
       })

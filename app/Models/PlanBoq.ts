@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, column, scope } from '@ioc:Adonis/Lucid/Orm'
 import moment from 'moment'
 
 export default class PlanBoq extends BaseModel {
@@ -44,6 +44,11 @@ export default class PlanBoq extends BaseModel {
     return {
       name: this.$extras.name,
       typeUnit: this.$extras.type_unit,
+      planBy: this.$extras.plan_by,
     }
   }
+
+  public static withEmployee = scope((query) => {
+    query.join('employees', 'employees.id', '=', 'plan_boqs.employee_id')
+  })
 }

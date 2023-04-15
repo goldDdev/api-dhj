@@ -1,14 +1,13 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import Logger from '@ioc:Adonis/Core/Logger'
 import { schema } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Project from 'App/Models/Project'
-import ProjectProgres from 'App/Models/ProjectProgres'
-import codeError from 'Config/codeError'
-import Logger from '@ioc:Adonis/Core/Logger'
-import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import ProjectBoq from 'App/Models/ProjectBoq'
-import PlanBoq from 'App/Models/PlanBoq'
+import ProjectProgres from 'App/Models/ProjectProgres'
+import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
+import codeError from 'Config/codeError'
 export default class ProjectsController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await Project.query()
@@ -320,6 +319,20 @@ export default class ProjectsController {
     return response.ok(query.serialize().data)
   }
 
+  public async destroyProgres({ request, response }: HttpContextContract) {
+    try {
+      const model = await ProjectProgres.findOrFail(request.param('id'))
+      if (model.aprovedBy === null) {
+        await model.delete()
+      } else {
+        return response.forbidden({ code: codeError.forbidden, type: 'forbidden' })
+      }
+      return response.noContent()
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
   public async listBoq({ now, response, request }: HttpContextContract) {
     try {
       const query = await ProjectBoq.query()
@@ -368,120 +381,5 @@ export default class ProjectsController {
     } catch (error) {
       return response.badRequest(error)
     }
-  }
-
-  public async planProgress({ auth, response, request }: HttpContextContract) {
-    try {
-      const payload = await request.validate({
-        schema: schema.create({
-          projectId: schema.number(),
-          projectBoqId: schema.number(),
-          progress: schema.number(),
-          startDate: schema.string(),
-          endDate: schema.string(),
-        }),
-      })
-
-      // const last = await ProjectProgres.query()
-      //   .where({
-      //     project_id: request.param('id'),
-      //     project_boq_id: payload.id,
-      //   })
-      //   .andWhere('progres_at', request.input('date', now))
-      //   .first()
-
-      // if (!last) {
-      //   isAvailable = true
-      // }
-
-      // if (isAvailable) {
-      await PlanBoq.create({
-        employeeId: auth.user!.employeeId,
-        projectId: payload.projectId,
-        projectBoqId: payload.projectBoqId,
-        progress: payload.progress,
-        startDate: payload.startDate,
-        endDate: payload.endDate,
-      })
-
-      return response.noContent()
-      // }
-
-      // return response.unprocessableEntity({ code: codeError.entity, type: 'exists' })
-    } catch (error) {
-      Logger.info(error)
-      return response.notFound({ code: codeError.badRequest, type: 'badRequest' })
-    }
-  }
-
-  public async listPlan({ auth, response, request, month, year }: HttpContextContract) {
-    const query = await PlanBoq.query()
-      .select(
-        'plan_boqs.project_boq_id',
-        'plan_boqs.id',
-        'project_boqs.name',
-        'start_date',
-        'end_date',
-        'project_boqs.type_unit',
-        'progress',
-        'employee_id'
-      )
-
-      .withScopes((scope) => {
-        scope.withProjectBoqs()
-        scope.withEmployee()
-      })
-      .if(request.input('name'), (query) => {
-        query.whereILike('project_boqs.name', `%${request.input('name')}%`)
-      })
-
-      .if(
-        request.input('all'),
-        (query) => {},
-        (query) => {
-          query.andWhere('employee_id', auth.user!.employeeId)
-        }
-      )
-      .if(
-        request.input('month'),
-        (query) => {
-          query.andWhereRaw(
-            '(EXTRACT(MONTH FROM start_date) = :month OR EXTRACT(MONTH FROM end_date) = :month)',
-            {
-              month: request.input('month'),
-            }
-          )
-        },
-        (query) =>
-          query.andWhereRaw(
-            '(EXTRACT(MONTH FROM start_date) = :month OR EXTRACT(MONTH FROM end_date) = :month)',
-            {
-              month: month,
-            }
-          )
-      )
-      .if(
-        request.input('year'),
-        (query) => {
-          query.andWhereRaw(
-            '(EXTRACT(YEAR FROM start_date) = :year OR EXTRACT(YEAR FROM end_date) = :year)',
-            {
-              year: request.input('year'),
-            }
-          )
-        },
-        (query) =>
-          query.andWhereRaw(
-            '(EXTRACT(YEAR FROM start_date) = :year OR EXTRACT(YEAR FROM end_date) = :year)',
-            {
-              year: year,
-            }
-          )
-      )
-
-      .orderBy(request.input('orderBy', 'plan_boqs.id'), request.input('order', 'desc'))
-      .paginate(request.input('page', 1), request.input('perPage', 15))
-
-    return response.ok(query.serialize().data)
   }
 }

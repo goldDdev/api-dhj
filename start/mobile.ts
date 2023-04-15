@@ -32,14 +32,16 @@ Route.group(() => {
       Route.get('/test', 'ProjectsController.test')
       Route.get('/:id/boq', 'ProjectsController.listBoq')
       Route.get('/:id/progres', 'ProjectsController.listProgres')
-      Route.get('/:id/plan', 'ProjectsController.listPlan')
+      Route.get('/:id/plan', 'PlanBoqController.listPlan')
       Route.get('/:id', 'ProjectsController.view')
       Route.post('/scoping', 'ProjectsController.scoping')
       Route.post('/:id/progres', 'ProjectsController.progres')
+      Route.delete('/:id/progres', 'ProjectsController.destroyProgres')
     }).prefix('project')
 
     Route.group(() => {
-      Route.post('/progress', 'ProjectsController.planProgress')
+      Route.post('/progress', 'PlanBoqController.create')
+      Route.delete('/:id', 'PlanBoqController.destroy')
     }).prefix('plan')
 
     Route.group(() => {

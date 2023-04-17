@@ -1,11 +1,17 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm'
 
-export default class Inventory extends BaseModel {
-  public static table = 'inventories'
+export default class InventoryRequestDetail extends BaseModel {
+  public static table = 'inventory_request_details'
 
   @column({ isPrimary: true })
   public id: number
+
+  @column({ columnName: 'request_id', serializeAs: 'requestId' })
+  public requestId: number
+
+  @column({ columnName: 'inventory_id', serializeAs: 'inventoryId' })
+  public inventoryId: number
 
   @column({ columnName: 'type' })
   public type: string
@@ -18,12 +24,6 @@ export default class Inventory extends BaseModel {
 
   @column({ columnName: 'qty' })
   public qty: number
-
-  @column({ columnName: 'min_qty', serializeAs: 'minQty' })
-  public minQty: number
-
-  @column({ columnName: 'project_id', serializeAs: 'projectID' })
-  public projectID: number
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime

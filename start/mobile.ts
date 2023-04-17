@@ -55,6 +55,8 @@ Route.group(() => {
     Route.group(() => {
       Route.get('/material', 'InventoryController.listMaterial')
       Route.get('/equipment', 'InventoryController.listEquipment')
+      Route.get('/request/:id', 'InventoryController.view')
+      Route.post('/request', 'InventoryController.create')
     }).prefix('inventory')
 
     Route.group(() => {

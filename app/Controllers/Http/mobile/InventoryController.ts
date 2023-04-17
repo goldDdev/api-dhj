@@ -129,10 +129,20 @@ export default class InventoryController {
   public async view({ request, response }: HttpContextContract) {
     try {
       const query = await Database.from('inventory_requests')
-        // .select('name', 'unit', 'qty')
-        // .join('inventory_request_details', 'inventory_request_details.request_id', '=', 'inventory_requests.id')
-        // .where('status', 'PENDING')
         .where('project_id', request.param('id'))
+        .orderBy(request.input('orderBy', 'id'), request.input('order', 'asc'))
+
+      return response.ok(query)
+    } catch (error) {
+      console.error(error)
+      return response.internalServerError({ code: codeError.badRequest, type: 'Server error' })
+    }
+  }
+
+  public async details({ request, response }: HttpContextContract) {
+    try {
+      const query = await Database.from('inventory_request_details')
+        .where('request_id', request.param('id'))
         .orderBy(request.input('orderBy', 'id'), request.input('order', 'asc'))
 
       return response.ok(query)

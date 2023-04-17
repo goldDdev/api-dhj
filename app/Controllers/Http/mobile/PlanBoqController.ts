@@ -5,7 +5,7 @@ import PlanBoq from 'App/Models/PlanBoq'
 import codeError from 'Config/codeError'
 
 export default class PlanBoqController {
-  public async planProgress({ auth, response, request }: HttpContextContract) {
+  public async create({ auth, response, request }: HttpContextContract) {
     try {
       const payload = await request.validate({
         schema: schema.create({
@@ -17,19 +17,6 @@ export default class PlanBoqController {
         }),
       })
 
-      // const last = await ProjectProgres.query()
-      //   .where({
-      //     project_id: request.param('id'),
-      //     project_boq_id: payload.id,
-      //   })
-      //   .andWhere('progres_at', request.input('date', now))
-      //   .first()
-
-      // if (!last) {
-      //   isAvailable = true
-      // }
-
-      // if (isAvailable) {
       await PlanBoq.create({
         employeeId: auth.user!.employeeId,
         projectId: payload.projectId,
@@ -40,9 +27,6 @@ export default class PlanBoqController {
       })
 
       return response.noContent()
-      // }
-
-      // return response.unprocessableEntity({ code: codeError.entity, type: 'exists' })
     } catch (error) {
       Logger.info(error)
       return response.notFound({ code: codeError.badRequest, type: 'badRequest' })

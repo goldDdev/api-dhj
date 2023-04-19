@@ -70,6 +70,11 @@ Route.group(() => {
     }).prefix('absent')
 
     Route.group(() => {
+      Route.get('/', 'InventoryRequestController.index')
+      Route.get('/:id/items', 'InventoryRequestController.items')
+    }).prefix('use-inventory')
+
+    Route.group(() => {
       Route.get('/:id/all', 'ProjectProgresController.all')
       Route.put('/', 'ProjectProgresController.update')
       Route.put('/confirm', 'ProjectProgresController.confirm')

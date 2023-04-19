@@ -10,7 +10,7 @@ export default class InventoryController {
   public async listMaterial({ request, response }: HttpContextContract) {
     try {
       const query = await Database.from('inventories')
-        .select('name', 'unit', 'qty')
+        .select('id', 'name', 'unit', 'qty')
         .if(request.input('query'), (query) =>
           query.whereILike('name', `%${request.input('query')}%`)
         )
@@ -27,7 +27,7 @@ export default class InventoryController {
   public async listEquipment({ request, response }: HttpContextContract) {
     try {
       const query = await Database.from('inventories')
-        .select('name', 'unit', 'qty')
+        .select('id', 'name', 'unit', 'qty')
         .if(request.input('query'), (query) =>
           query.whereILike('name', `%${request.input('query')}%`)
         )

@@ -65,6 +65,7 @@ Route.group(() => {
     }).prefix('tracking')
 
     Route.get('/settings', 'SettingController.index')
+    Route.post('/logout', 'AuthController.logout')
   }).middleware(['auth', 'tz'])
 })
   .namespace('App/Controllers/Http/mobile')

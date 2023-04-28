@@ -18,7 +18,7 @@ export default class PayrolController {
       .select('*', 'payrols.id')
 
       .withScopes((scope) => scope.withEmployee())
-      .where({ id: request.param('id') })
+      .where({ 'payrols.id': request.param('id') })
       .first()
     return response.ok(query)
   }

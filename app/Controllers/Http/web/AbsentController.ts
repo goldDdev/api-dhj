@@ -22,7 +22,7 @@ export default class AbsentController {
       )
       .join('employees', 'employees.id', '=', 'project_absents.employee_id')
       .joinRaw(
-        'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+        'LEFT JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
       )
       .if(
         request.input('month'),

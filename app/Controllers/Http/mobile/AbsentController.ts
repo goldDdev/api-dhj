@@ -350,40 +350,155 @@ export default class AbsentController {
       ).map((v) => v.id)
 
       // NOTE: Create Additional Hour if absent > 15minutes
-      if (currentTime.toSeconds() > closeTreshold.toSeconds()) {
-        const [{ count }] = await Database.query()
-          .from('request_overtimes')
-          .where({
-            employee_id: auth.user!.employeeId,
-            project_id: request.input('projectId'),
-            absent_at: now,
-          })
-          .andWhere('status', '!=', RequestOTStatus.REJECT)
-          .count('*')
+      // if (currentTime.toSeconds() > closeTreshold.toSeconds()) {
+      //   const [{ count }] = await Database.query()
+      //     .from('request_overtimes')
+      //     .where({
+      //       employee_id: auth.user!.employeeId,
+      //       project_id: request.input('projectId'),
+      //       absent_at: now,
+      //     })
+      //     .andWhere('status', '!=', RequestOTStatus.REJECT)
+      //     .count('*')
 
-        if (+count === 0) {
-          const overtimeDuration = Math.round(currentTime.diff(closeAt, 'minutes').minutes)
-          const totalEarn = overtimeDuration * +setting.value
-          await RequestOvertime.create(
-            {
-              absentAt: now,
-              closeAt: currentTime.toFormat('HH:mm'),
-              comeAt: closeTime,
-              employeeId: auth.user!.employeeId,
-              projectId: request.input('projectId'),
-              overtimeDuration,
-              overtimePrice: +setting.value,
-              totalEarn: totalEarn * workers.length,
-            },
-            { client: trx }
-          )
-        }
-      }
+      //   if (+count === 0) {
+      //     const overtimeDuration = Math.round(currentTime.diff(closeAt, 'minutes').minutes)
+      //     const totalEarn = overtimeDuration * +setting.value
+      //     await RequestOvertime.create(
+      //       {
+      //         absentAt: now,
+      //         closeAt: currentTime.toFormat('HH:mm'),
+      //         comeAt: closeTime,
+      //         employeeId: auth.user!.employeeId,
+      //         projectId: request.input('projectId'),
+      //         overtimeDuration,
+      //         overtimePrice: +setting.value,
+      //         totalEarn: totalEarn * workers.length,
+      //       },
+      //       { client: trx }
+      //     )
+      //   }
+      // }
 
       await ProjectAbsent.query({ client: trx })
         .whereIn('id', workers)
         .andWhereNull('close_at')
         .update({ closeAt: closeTime, duration })
+
+      await trx.commit()
+      return response.noContent()
+    } catch (error) {
+      Logger.error(error)
+      await trx.rollback()
+      return response.notFound({ code: codeError.notFound, type: 'notFound', error })
+    }
+  }
+
+  public async addSingle({ auth, request, now, response }: HttpContextContract) {
+    try {
+      const { hour, minute } = await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.START_TIME)
+        .first()
+
+      const { value: latePrice } = await Database.from('settings')
+        .where('code', SettingCode.LATETIME_PRICE_PER_MINUTE)
+        .first()
+
+      const { value: lateTreshold } = await Database.from('settings')
+        .where('code', SettingCode.LATE_TRESHOLD)
+        .first()
+
+      const comeAt = DateTime.local({ zone: 'UTC+7' }).toFormat('HH:mm')
+      const startWork = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
+      const startWorkLate = DateTime.fromObject(
+        { hour: hour, minute: lateTreshold },
+        { zone: 'UTC+7' }
+      )
+      const lateDuration = Math.round(startWorkLate.diffNow('minutes').minutes)
+
+      const findAbsent = await ProjectAbsent.query()
+        .where({
+          employee_id: auth.user?.employeeId,
+          absent_at: now,
+        })
+        .first()
+
+      if (!findAbsent) {
+        await ProjectAbsent.create({
+          absentAt: now,
+          absentBy: auth.user?.employeeId,
+          employeeId: auth?.user?.employeeId,
+          latitude: request.input('latitude', 0),
+          longitude: request.input('longitude', 0),
+          comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
+          lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
+          latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
+          absent: request.input('absent', 'P'),
+        })
+      }
+      return response.noContent()
+    } catch (error) {
+      Logger.info(error)
+      return response.notFound({ code: codeError.notFound, type: 'notFound' })
+    }
+  }
+
+  public async closeSingle({ auth, request, now, response }: HttpContextContract) {
+    const trx = await Database.transaction()
+    try {
+      const currentAbsent = await Database.from('project_absents')
+        .select(
+          'id',
+          Database.raw(
+            'EXTRACT(hour from "come_at"::time)::int AS hour,EXTRACT(minute from "come_at"::time)::int AS minute'
+          )
+        )
+        .where({
+          absent_at: now,
+          employee_id: auth.user?.employeeId,
+        })
+        .andWhereNull('project_absents.project_id')
+        .andWhereNotNull('absent')
+        .first()
+
+      const { hour, minute } = await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.CLOSE_TIME)
+        .first()
+
+      const closeWork = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
+
+      const comeAt = DateTime.fromObject(
+        { hour: currentAbsent.hour, minute: currentAbsent.minute },
+        { zone: 'UTC+7' }
+      )
+      const currentTime = DateTime.local({ zone: 'UTC+7' })
+
+      const duration = Math.round(
+        (currentTime.toSeconds() < closeWork.toSeconds() ? currentTime : closeWork).diff(
+          comeAt,
+          'minutes'
+        ).minutes
+      )
+
+      const closeAt = currentTime.toSeconds() < closeWork.toSeconds() ? currentTime : closeWork
+      const closeTime = closeAt.toFormat('HH:mm')
+
+      if (currentAbsent) {
+        await ProjectAbsent.query({ client: trx })
+          .where('id', currentAbsent.id)
+          .andWhereNull('close_at')
+          .update({ closeAt: closeTime, duration })
+      }
 
       await trx.commit()
       return response.noContent()

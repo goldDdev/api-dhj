@@ -383,7 +383,12 @@ export default class AbsentController {
       await ProjectAbsent.query({ client: trx })
         .whereIn('id', workers)
         .andWhereNull('close_at')
-        .update({ closeAt: closeTime, duration })
+        .update({
+          closeAt: closeTime,
+          duration,
+          closeLatitude: request.input('latitude', 0),
+          closeLongitude: request.input('longitude', 0),
+        })
 
       await trx.commit()
       return response.noContent()
@@ -497,7 +502,12 @@ export default class AbsentController {
         await ProjectAbsent.query({ client: trx })
           .where('id', currentAbsent.id)
           .andWhereNull('close_at')
-          .update({ closeAt: closeTime, duration })
+          .update({
+            closeAt: closeTime,
+            duration,
+            closeLatitude: request.input('latitude', 0),
+            closeLongitude: request.input('longitude', 0),
+          })
       }
 
       await trx.commit()

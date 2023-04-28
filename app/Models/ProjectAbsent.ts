@@ -56,19 +56,25 @@ export default class ProjectAbsent extends BaseModel {
   @column()
   public photo: string
 
-  @column({
-    columnName: 'latitude',
-    serializeAs: 'latitude',
-    consume: (value) => parseFloat(value),
-  })
+  @column({ consume: (value) => parseFloat(value) })
   public latitude: number
 
+  @column({ consume: (value) => parseFloat(value) })
+  public longitude: number
+
   @column({
-    columnName: 'longitude',
-    serializeAs: 'longitude',
+    columnName: 'close_latitude',
+    serializeAs: 'closeLatitude',
     consume: (value) => parseFloat(value),
   })
-  public longitude: number
+  public closeLatitude: number
+
+  @column({
+    columnName: 'close_longitude',
+    serializeAs: 'closeLongitude',
+    consume: (value) => parseFloat(value),
+  })
+  public closeLongitude: number
 
   @column({ columnName: 'absent_by', serializeAs: 'absentBy' })
   public absentBy: number

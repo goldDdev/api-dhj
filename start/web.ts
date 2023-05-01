@@ -30,7 +30,7 @@ Route.group(() => {
       Route.get('/employee', 'WeeklyPlanController.employees')
       Route.post('/', 'WeeklyPlanController.store')
       Route.put('/', 'WeeklyPlanController.update')
-      Route.post('/validation', 'WeeklyPlanController.store')
+      Route.post('/validation', 'WeeklyPlanController.validation')
       Route.delete('/:id', 'WeeklyPlanController.destroy')
     }).prefix('weekly-plan')
 

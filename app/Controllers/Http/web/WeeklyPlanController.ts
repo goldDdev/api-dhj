@@ -5,6 +5,7 @@ import Employee, { EmployeeType } from 'App/Models/Employee'
 import Project from 'App/Models/Project'
 import WeeklyPlans from 'App/Models/WeeklyPlan'
 import { DateTime } from 'luxon'
+import Logger from '@ioc:Adonis/Core/Logger'
 
 export default class WeeklyPlanController {
   public async index({ response, month, year, request }: HttpContextContract) {
@@ -84,20 +85,19 @@ export default class WeeklyPlanController {
   }
 
   public async employees({ response, request }: HttpContextContract) {
+    const query = await Employee.query()
+      .select(['id', 'name', 'role'])
+      .if(request.input('name'), (query) => query.whereILike('name', `%${request.input('name')}%`))
+      .whereNotIn('role', [
+        EmployeeType.MANDOR,
+        EmployeeType.STAFF,
+        EmployeeType.WORKER,
+        EmployeeType.ADMIN,
+        EmployeeType.OWNER,
+      ])
+      .orderBy('id', 'desc')
     return response.json({
-      data: await Employee.query()
-        .select(['id', 'name', 'role'])
-        .if(request.input('name'), (query) =>
-          query.whereILike('name', `%${request.input('name')}%`)
-        )
-        .whereNotIn('role', [
-          EmployeeType.MANDOR,
-          EmployeeType.STAFF,
-          EmployeeType.WORKER,
-          EmployeeType.ADMIN,
-          EmployeeType.OWNER,
-        ])
-        .orderBy('id', 'desc'),
+      data: query.map((v) => v.serialize({ fields: { pick: ['id', 'name', 'role'] } })),
     })
   }
 
@@ -123,15 +123,45 @@ export default class WeeklyPlanController {
     try {
       await request.validate({
         schema: schema.create({
-          employeeId: schema.number([]),
+          employeeId: schema.number(),
           projectId: schema.number([]),
           startDate: schema.string(),
           endDate: schema.string([]),
         }),
       })
 
+      const unique = await WeeklyPlans.query()
+        .where({
+          employeeId: request.input('employeeId', 0),
+        })
+        .andWhereRaw('start_date >= :start_date', {
+          start_date: request.input('startDate'),
+        })
+        .andWhereRaw('end_date <= :end_date', {
+          end_date: request.input('endDate'),
+        })
+        .if(request.input('id'), (query) => query.andWhereNot('id', request.input('id', 0)))
+        .first()
+
+      if (unique) {
+        return response.json({
+          error: {
+            messages: {
+              errors: [
+                {
+                  rule: 'unique',
+                  field: 'employeeId',
+                  message: 'unique',
+                },
+              ],
+            },
+          },
+        })
+      }
+
       return response.json({ error: [] })
     } catch (error) {
+      Logger.error(error)
       return response.json({ error })
     }
   }

@@ -134,12 +134,14 @@ export default class WeeklyPlanController {
         .where({
           employeeId: request.input('employeeId', 0),
         })
-        .andWhereRaw('start_date >= :start_date', {
-          start_date: request.input('startDate'),
-        })
-        .andWhereRaw('end_date <= :end_date', {
-          end_date: request.input('endDate'),
-        })
+        .andWhereRaw(
+          '((start_date >= :start_date AND end_date <= :end_date) OR (end_date >= :start_date AND end_date <= :end_date))',
+          {
+            start_date: request.input('startDate'),
+            end_date: request.input('endDate'),
+          }
+        )
+
         .if(request.input('id'), (query) => query.andWhereNot('id', request.input('id', 0)))
         .first()
 

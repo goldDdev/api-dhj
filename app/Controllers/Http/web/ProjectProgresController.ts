@@ -96,7 +96,7 @@ export default class ProjectProgresController {
       })
 
     const queryPlan = await PlanBoq.query()
-      .select('*', 'plan_boqs.id')
+      .select('*', 'employees.name AS plan_by', 'plan_boqs.id')
       .withScopes((scope) => scope.withEmployee())
       .where('plan_boqs.project_id', request.param('id'))
       .if(

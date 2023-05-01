@@ -111,6 +111,12 @@ export default class AbsentController {
           .where({ absent_at: now, absent: 'P' })
           .andWhereNull('close_at')
           .update({ closeAt: closeWork })
+
+        await ProjectAbsent.query()
+          .where({ absent_at: now, absent: 'P' })
+          .andWhereNull('close_at')
+          .andWhereNull('project_id')
+          .update({ closeAt: closeWork })
       }
 
       return response.noContent()

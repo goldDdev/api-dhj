@@ -25,6 +25,16 @@ Route.group(() => {
     }).prefix('setting')
 
     Route.group(() => {
+      Route.get('/', 'WeeklyPlanController.index')
+      Route.get('/project', 'WeeklyPlanController.projects')
+      Route.get('/employee', 'WeeklyPlanController.employees')
+      Route.post('/', 'WeeklyPlanController.store')
+      Route.put('/', 'WeeklyPlanController.update')
+      Route.post('/validation', 'WeeklyPlanController.store')
+      Route.delete('/:id', 'WeeklyPlanController.destroy')
+    }).prefix('weekly-plan')
+
+    Route.group(() => {
       Route.get('/', 'PayrolController.index')
       Route.get('/:id', 'PayrolController.view')
       Route.get('/:id/employee', 'PayrolController.employee')

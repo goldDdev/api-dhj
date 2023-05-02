@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, HasMany, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
+import InventoryRequestDetail from './InventoryRequestDetail'
 
 export default class InventoryRequest extends BaseModel {
   public static table = 'inventory_requests'
@@ -33,6 +34,9 @@ export default class InventoryRequest extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
+
+  @hasMany(() => InventoryRequestDetail, { foreignKey: 'requestId', localKey: 'id' })
+  public items: HasMany<typeof InventoryRequestDetail>
 
   public serializeExtras() {
     return {

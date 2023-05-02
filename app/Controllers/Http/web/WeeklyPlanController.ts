@@ -89,7 +89,6 @@ export default class WeeklyPlanController {
       .select(['id', 'name', 'role'])
       .if(request.input('name'), (query) => query.whereILike('name', `%${request.input('name')}%`))
       .whereNotIn('role', [
-        EmployeeType.MANDOR,
         EmployeeType.STAFF,
         EmployeeType.WORKER,
         EmployeeType.ADMIN,

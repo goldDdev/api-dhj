@@ -128,7 +128,8 @@ export default class InventoryController {
 
   public async view({ request, response }: HttpContextContract) {
     try {
-      const query = await Database.from('inventory_requests')
+      const query = await InventoryRequest.query()
+        .preload('items')
         .where('project_id', request.param('id'))
         .orderBy(request.input('orderBy', 'id'), request.input('order', 'asc'))
 

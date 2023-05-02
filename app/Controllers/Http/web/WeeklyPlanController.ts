@@ -1,5 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import { schema, rules } from '@ioc:Adonis/Core/Validator'
+import { schema } from '@ioc:Adonis/Core/Validator'
 import Boq from 'App/Models/Boq'
 import Employee, { EmployeeType } from 'App/Models/Employee'
 import Project from 'App/Models/Project'
@@ -31,46 +31,59 @@ export default class WeeklyPlanController {
       })
       .orderBy('start_date', 'asc')
 
-    const newPlan = queryPlan.reduce((p: any[], n) => {
+    const employees = queryPlan.reduce((p: any[], n) => {
       const index = p.findIndex((v) => v && v.employeeId === n.employeeId)
-      const startAt = DateTime.fromFormat(n.startDate, 'yyyy-MM-dd')
-      const diff = DateTime.fromFormat(n.endDate, 'yyyy-MM-dd').diff(
-        DateTime.fromFormat(n.startDate, 'yyyy-MM-dd'),
-        'day'
-      ).days
-
-      const plans: any[] = []
-      for (let i = 0; i <= diff; i++) {
-        const day = startAt.plus({ day: i })
-        const dayMonth = day.month
-        if (dayMonth === +request.input('month', month)) {
-          plans.push({
-            startDate: n.startDate,
-            endDate: n.endDate,
-            projectName: n.serialize().projectName,
-            projectId: n.projectId,
-            id: n.id,
-            day: day.day,
-          })
-        }
+      if (index === -1) {
+        p.push(n.serialize())
       }
-
-      if (index > -1) {
-        p[index]['plans'] = p[index]['plans'].concat(plans)
-        p[index]['data'] = p[index]['data'].concat(n.serialize())
-      } else {
-        p.push({
-          employeeId: n.employeeId,
-          name: n.serialize().name,
-          role: n.serialize().role,
-          data: [n.serialize()],
-          plans,
-        })
-      }
-
       return p
     }, [])
-    return response.json({ data: newPlan })
+
+    const newProjects = employees.map((value) => {
+      const prj = queryPlan
+        .filter((v) => v.employeeId === value.employeeId)
+        .reduce((p: any[], n) => {
+          const index = p.findIndex((v) => v && v.projectId === n.projectId)
+          const startAt = DateTime.fromFormat(n.startDate, 'yyyy-MM-dd')
+          const diff = DateTime.fromFormat(n.endDate, 'yyyy-MM-dd').diff(
+            DateTime.fromFormat(n.startDate, 'yyyy-MM-dd'),
+            'day'
+          ).days
+
+          const plans: any[] = []
+          for (let i = 0; i <= diff; i++) {
+            const day = startAt.plus({ day: i })
+            const dayMonth = day.month
+            if (dayMonth === +request.input('month', month)) {
+              plans.push({
+                startDate: n.startDate,
+                endDate: n.endDate,
+                projectName: n.serialize().projectName,
+                projectId: n.projectId,
+                id: n.id,
+                day: day.day,
+              })
+            }
+          }
+
+          if (index > -1) {
+            p[index]['plans'] = p[index]['plans'].concat(plans)
+          } else {
+            p.push({ projectName: n.serialize().projectName, projectId: n.projectId, plans })
+          }
+          return p
+        }, [])
+
+      return {
+        employeeId: value.employeeId,
+        name: value.name,
+        role: value.role,
+        data: queryPlan.filter((v) => v.employeeId === value.employeeId),
+        projects: prj,
+      }
+    })
+
+    return response.json({ data: newProjects })
   }
 
   public async projects({ response, request }: HttpContextContract) {
@@ -132,6 +145,7 @@ export default class WeeklyPlanController {
       const unique = await WeeklyPlans.query()
         .where({
           employeeId: request.input('employeeId', 0),
+          projectId: request.input('projectId', 0),
         })
         .andWhereRaw(
           '((start_date >= :start_date AND end_date <= :end_date) OR (end_date >= :start_date AND end_date <= :end_date))',

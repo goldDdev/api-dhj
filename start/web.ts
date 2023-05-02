@@ -80,8 +80,10 @@ Route.group(() => {
     }).prefix('absent')
 
     Route.group(() => {
+      Route.put('/status', 'InventoryRequestController.status')
       Route.get('/', 'InventoryRequestController.index')
       Route.get('/:id/items', 'InventoryRequestController.items')
+      Route.get('/:id', 'InventoryRequestController.view')
     }).prefix('use-inventory')
 
     Route.group(() => {

@@ -59,13 +59,17 @@ export default class Payrol extends BaseModel {
   @column({ columnName: 'late_price', serializeAs: 'latePrice' })
   public latePrice: string
 
-  @column({ columnName: 'total_present', serializeAs: 'totalPresent' })
+  @column({ columnName: 'total_present', serializeAs: 'totalPresent', consume: (value) => +value })
   public totalPresent: number
 
-  @column({ columnName: 'total_absent', serializeAs: 'totalAbsent' })
+  @column({ columnName: 'total_absent', serializeAs: 'totalAbsent', consume: (value) => +value })
   public totalAbsent: number
 
-  @column({ columnName: 'total_overtime_price', serializeAs: 'totalOvertimePrice' })
+  @column({
+    columnName: 'total_overtime_price',
+    serializeAs: 'totalOvertimePrice',
+    consume: (value) => +value,
+  })
   public totalOvertimePrice: number
 
   @column({

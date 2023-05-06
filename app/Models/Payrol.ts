@@ -38,16 +38,16 @@ export default class Payrol extends BaseModel {
   @column({ columnName: 'hourly_wages', serializeAs: 'hourlyWages', consume: (value) => +value })
   public hourlyWages: number
 
-  @column()
+  @column({ consume: (value) => +value })
   public total: number
 
-  @column()
+  @column({ consume: (value) => +value })
   public duration: number
 
-  @column()
+  @column({ consume: (value) => +value })
   public month: number
 
-  @column()
+  @column({ consume: (value) => +value })
   public year: number
 
   @column({ columnName: 'pay_at', serializeAs: 'payAt' })
@@ -83,13 +83,17 @@ export default class Payrol extends BaseModel {
   @column({ columnName: 'total_late_duration', serializeAs: 'totalLateDuration' })
   public totalLateDuration: number
 
-  @column({ columnName: 'other_cut', serializeAs: 'otherCut' })
+  @column({ columnName: 'other_cut', serializeAs: 'otherCut', consume: (value) => +value })
   public otherCut: number
 
-  @column({ columnName: 'salary_cut', serializeAs: 'salaryCut' })
+  @column({ columnName: 'salary_cut', serializeAs: 'salaryCut', consume: (value) => +value })
   public salaryCut: number
 
-  @column({ columnName: 'other_additional', serializeAs: 'otherAdditional' })
+  @column({
+    columnName: 'other_additional',
+    serializeAs: 'otherAdditional',
+    consume: (value) => +value,
+  })
   public otherAdditional: number
 
   @column({ columnName: 'status', serializeAs: 'status' })

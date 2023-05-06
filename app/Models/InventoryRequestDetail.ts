@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
+import InventoryRequest from './InventoryRequest'
 
 export default class InventoryRequestDetail extends BaseModel {
   public static table = 'inventory_request_details'
@@ -30,4 +31,7 @@ export default class InventoryRequestDetail extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
+
+  @belongsTo(() => InventoryRequest, { foreignKey: 'requestId', localKey: 'id' })
+  public request: BelongsTo<typeof InventoryRequest>
 }

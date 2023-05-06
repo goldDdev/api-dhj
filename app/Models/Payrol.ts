@@ -32,7 +32,7 @@ export default class Payrol extends BaseModel {
   @column({ columnName: 'role', serializeAs: 'role' })
   public role: string
 
-  @column()
+  @column({ consume: (value) => +value })
   public salary: number
 
   @column({ columnName: 'hourly_wages', serializeAs: 'hourlyWages', consume: (value) => +value })

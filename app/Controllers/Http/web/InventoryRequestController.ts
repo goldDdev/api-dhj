@@ -67,14 +67,13 @@ export default class InventoryRequestController {
 
   public async report({ response, request }: HttpContextContract) {
     return response.send(
-      await InventoryRequestDetail.query()
+      await Database.from('inventory_request_details')
         .select([
           'inventory_requests.status',
-          'projects.name as project_name',
+          'projects.name as projectName',
           'employees.name AS creator',
           'inventory_request_details.*',
         ])
-        .preload('request')
         .join('inventory_requests', 'inventory_request_details.request_id', 'inventory_requests.id')
         .join('projects', 'inventory_requests.project_id', 'projects.id')
         .join('employees', 'inventory_requests.created_by', 'employees.id')

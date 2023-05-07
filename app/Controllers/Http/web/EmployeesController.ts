@@ -139,6 +139,7 @@ export default class EmployeesController {
           role: schema.string(),
           hourlyWages: schema.number.optional(),
           salary: schema.number.optional(),
+          password: schema.string.optional(),
           email: schema.string.optional([
             rules.unique({
               table: 'users',
@@ -151,10 +152,10 @@ export default class EmployeesController {
         }),
       })
 
-      const { email, ...emp } = payload
+      const { email, password, ...emp } = payload
       const model = await Employee.create(emp, { client: trx })
       if (payload.role !== EmployeeType.WORKER) {
-        await model.related('user').create({ email, password: model.phoneNumber })
+        await model.related('user').create({ email, password: password || model.phoneNumber })
       }
       await trx.commit()
       return response.created({ data: { ...model.serialize(), email } })
@@ -193,6 +194,7 @@ export default class EmployeesController {
           role: schema.string(),
           hourlyWages: schema.number.optional(),
           salary: schema.number.optional(),
+          password: schema.string.optional(),
           email: schema.string.optional([
             rules.unique({
               table: 'users',
@@ -206,14 +208,14 @@ export default class EmployeesController {
         }),
       })
 
-      const { email, ...emp } = payload
+      const { email, password, ...emp } = payload
       const model = await Employee.find(request.input('id'), { client: trx })
       if (model) {
         const current = model
         await model.load('user')
         await model.merge(emp).save()
         if (email) {
-          await model.user.merge({ email }).save()
+          await model.user.merge(password ? { email, password } : { email }).save()
         }
         await trx.commit()
         return response

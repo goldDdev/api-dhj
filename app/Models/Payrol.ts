@@ -32,22 +32,22 @@ export default class Payrol extends BaseModel {
   @column({ columnName: 'role', serializeAs: 'role' })
   public role: string
 
-  @column()
+  @column({ consume: (value) => +value })
   public salary: number
 
   @column({ columnName: 'hourly_wages', serializeAs: 'hourlyWages', consume: (value) => +value })
   public hourlyWages: number
 
-  @column()
+  @column({ consume: (value) => +value })
   public total: number
 
-  @column()
+  @column({ consume: (value) => +value })
   public duration: number
 
-  @column()
+  @column({ consume: (value) => +value })
   public month: number
 
-  @column()
+  @column({ consume: (value) => +value })
   public year: number
 
   @column({ columnName: 'pay_at', serializeAs: 'payAt' })
@@ -59,19 +59,31 @@ export default class Payrol extends BaseModel {
   @column({ columnName: 'late_price', serializeAs: 'latePrice' })
   public latePrice: string
 
-  @column({ columnName: 'total_present', serializeAs: 'totalPresent' })
+  @column({ columnName: 'total_present', serializeAs: 'totalPresent', consume: (value) => +value })
   public totalPresent: number
 
-  @column({ columnName: 'total_absent', serializeAs: 'totalAbsent' })
+  @column({ columnName: 'total_absent', serializeAs: 'totalAbsent', consume: (value) => +value })
   public totalAbsent: number
 
-  @column({ columnName: 'total_overtime_price', serializeAs: 'totalOvertimePrice' })
+  @column({
+    columnName: 'total_overtime_price',
+    serializeAs: 'totalOvertimePrice',
+    consume: (value) => +value,
+  })
   public totalOvertimePrice: number
 
-  @column({ columnName: 'total_late_price', serializeAs: 'totalLatePrice' })
+  @column({
+    columnName: 'total_late_price',
+    serializeAs: 'totalLatePrice',
+    consume: (value) => +value,
+  })
   public totalLatePrice: number
 
-  @column({ columnName: 'total_overtime', serializeAs: 'totalOvertime' })
+  @column({
+    columnName: 'total_overtime',
+    serializeAs: 'totalOvertime',
+    consume: (value) => +value,
+  })
   public totalOvertime: number
 
   @column({ columnName: 'total_late', serializeAs: 'totalLate' })
@@ -83,13 +95,17 @@ export default class Payrol extends BaseModel {
   @column({ columnName: 'total_late_duration', serializeAs: 'totalLateDuration' })
   public totalLateDuration: number
 
-  @column({ columnName: 'other_cut', serializeAs: 'otherCut' })
+  @column({ columnName: 'other_cut', serializeAs: 'otherCut', consume: (value) => +value })
   public otherCut: number
 
-  @column({ columnName: 'salary_cut', serializeAs: 'salaryCut' })
+  @column({ columnName: 'salary_cut', serializeAs: 'salaryCut', consume: (value) => +value })
   public salaryCut: number
 
-  @column({ columnName: 'other_additional', serializeAs: 'otherAdditional' })
+  @column({
+    columnName: 'other_additional',
+    serializeAs: 'otherAdditional',
+    consume: (value) => +value,
+  })
   public otherAdditional: number
 
   @column({ columnName: 'status', serializeAs: 'status' })

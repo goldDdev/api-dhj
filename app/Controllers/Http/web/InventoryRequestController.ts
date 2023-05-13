@@ -1,7 +1,7 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Database from '@ioc:Adonis/Lucid/Database'
 import InventoryRequest from 'App/Models/InventoryRequest'
-import InventoryRequestDetail from 'App/Models/InventoryRequestDetail'
+// import InventoryRequestDetail from 'App/Models/InventoryRequestDetail'
 import codeError from 'Config/codeError'
 
 export default class InventoryRequestController {
@@ -70,6 +70,7 @@ export default class InventoryRequestController {
       await Database.from('inventory_request_details')
         .select([
           'inventory_requests.status',
+          'inventory_requests.start_date as startDate',
           'projects.name as projectName',
           'employees.name AS creator',
           'inventory_request_details.*',

@@ -41,7 +41,7 @@ export default class TrackingsController {
       (
         await Database.rawQuery(`
           SELECT * FROM trackings as tr 
-          AND project_id = 19
+          WHERE project_id = 19
           ORDER BY id desc;
         `)
       ).rows

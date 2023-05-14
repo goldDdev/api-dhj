@@ -19,7 +19,7 @@ export default class Tracking extends BaseModel {
   @column({ columnName: 'longitude', serializeAs: 'longitude' })
   public longitude: number
 
-  @column.dateTime({ autoCreate: true })
+  @column.dateTime({ autoCreate: true, consume: (value) => DateTime.now().toUTC(7).toSQL() })
   public createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })

@@ -6,6 +6,7 @@ export default class TrackingsController {
   public async index({ request, response, now }: HttpContextContract) {
     if (!request.input('projectId') || !request.input('date')) return response.send({ data: [] })
     const project = await Project.findOrFail(request.input('projectId'))
+    console.log('project >', project)
 
     const tracks = (
       await Database.rawQuery(
@@ -30,6 +31,7 @@ export default class TrackingsController {
         { date: request.input('date', now) }
       )
     ).rows
+    console.log('tracks >', tracks)
 
     // TODO : employee project but not in trackings ?
 

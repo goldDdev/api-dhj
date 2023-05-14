@@ -63,11 +63,17 @@ export default class RequestOvertime extends BaseModel {
   @column({ columnName: 'request_by', serializeAs: 'requestBy' })
   public requestBy: number
 
+  @column({ columnName: 'confirm_by', serializeAs: 'confirmBy' })
+  public confirmBy: number
+
   @column()
   public type: string
 
   @column()
   public status: string
+
+  @column({ columnName: 'confirm_status', serializeAs: 'confirmStatus' })
+  public confirmStatus: string
 
   @column({ columnName: 'note', serializeAs: 'note' })
   public note: string
@@ -89,6 +95,12 @@ export default class RequestOvertime extends BaseModel {
     foreignKey: 'actionBy',
   })
   public actionEmployee: BelongsTo<typeof Employee>
+
+  @belongsTo(() => Employee, {
+    localKey: 'id',
+    foreignKey: 'confirmBy',
+  })
+  public confirmEmployee: BelongsTo<typeof Employee>
 
   @belongsTo(() => Project, {
     localKey: 'id',

@@ -1,7 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Database from '@ioc:Adonis/Lucid/Database'
 import codeError from 'Config/codeError'
-import moment from 'moment'
 import { DateTime } from 'luxon'
 import { schema } from '@ioc:Adonis/Core/Validator'
 import Setting, { SettingCode } from 'App/Models/Setting'
@@ -13,7 +12,7 @@ import Employee from 'App/Models/Employee'
 import Logger from '@ioc:Adonis/Core/Logger'
 
 export default class ProjectOvertimeController {
-  public async index({ response, request }: HttpContextContract) {
+  public async index({ response, request, month, year }: HttpContextContract) {
     const query = await RequestOvertime.query()
       .select(
         '*',
@@ -54,11 +53,12 @@ export default class ProjectOvertimeController {
       .join('employees', 'employees.id', '=', 'request_overtimes.request_by')
       .join('employees as emp', 'emp.id', '=', 'request_overtimes.employee_id')
       .preload('actionEmployee')
+      .preload('confirmEmployee')
       .whereRaw('EXTRACT(MONTH FROM absent_at) = :month ', {
-        month: request.input('month', moment().month() + 1),
+        month: request.input('month', month),
       })
       .andWhereRaw('EXTRACT(YEAR FROM absent_at) = :year ', {
-        year: request.input('year', moment().year()),
+        year: request.input('year', year),
       })
       .andWhere('project_id', request.param('id', 0))
       .if(request.input('projectId'), (query) => {
@@ -282,7 +282,7 @@ export default class ProjectOvertimeController {
         )
       }
 
-      await model.merge({ status: payload.status, actionBy: auth.user?.employeeId }).save()
+      await model.merge({ confirmStatus: payload.status, confirmBy: auth.user?.employeeId }).save()
       await model.load('actionEmployee')
       await model.refresh()
 

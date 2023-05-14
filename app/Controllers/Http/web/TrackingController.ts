@@ -22,7 +22,7 @@ export default class TrackingsController {
         tr.longitude,
         tr.created_at
       FROM
-        (SELECT * FROM trackings ORDER BY id DESC) as tr
+        (SELECT * FROM trackings ORDER BY id DESC ) as tr
       JOIN projects ON projects.id = tr.project_id
       JOIN employees ON employees.id = tr.employee_id
       WHERE DATE(tr.created_at) = :date

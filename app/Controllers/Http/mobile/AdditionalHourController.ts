@@ -8,6 +8,7 @@ import RequestOvertime, { OTType, RequestOTStatus } from 'App/Models/RequestOver
 import Setting, { SettingCode } from 'App/Models/Setting'
 import codeError from 'Config/codeError'
 import moment from 'moment'
+import Logger from '@ioc:Adonis/Core/Logger'
 export default class AdditionalHourController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await RequestOvertime.query()
@@ -258,6 +259,87 @@ export default class AdditionalHourController {
       return response.noContent()
     } catch (error) {
       return response.notFound({ code: codeError.notFound })
+    }
+  }
+
+  public async pendingOvertime({ request, response, auth }: HttpContextContract) {
+    try {
+      const overtimes = await RequestOvertime.query()
+        .select(
+          '*',
+          'employees.role AS request_role',
+          'request_overtimes.id',
+          'request_overtimes.status',
+          'projects.name AS project_name',
+          'projects.status AS project_status',
+          'employees.name AS request_name',
+          Database.raw(
+            `(
+            CASE
+                WHEN request_overtimes.TYPE = 'PERSONAL' THEN
+                1 ELSE (
+                SELECT COUNT
+                  ( * ) 
+                FROM
+                  project_workers a1
+                  INNER JOIN project_absents ON project_absents.employee_id = a1.employee_id 
+                  AND project_absents.project_id = request_overtimes.project_id 
+                  AND project_absents.absent_at = request_overtimes.absent_at 
+                WHERE
+                  a1.project_id = request_overtimes.project_id 
+                  AND (
+                    a1.parent_id = ( SELECT id FROM project_workers WHERE project_workers.employee_id = request_overtimes.employee_id AND project_workers.project_id = request_overtimes.project_id LIMIT 1 ) 
+                    OR a1.id = ( SELECT id FROM project_workers WHERE project_workers.employee_id = request_overtimes.employee_id AND project_workers.project_id = request_overtimes.project_id LIMIT 1 ) 
+                  ) 
+                  AND a1.status = 'ACTIVE' 
+                  AND project_absents.ABSENT = 'P' 
+                ) 
+            END 
+            ) :: INT AS total_worker`
+          )
+        )
+        .join('project_workers', 'project_workers.project_id', 'request_overtimes.project_id')
+        .join('projects', 'projects.id', 'request_overtimes.project_id')
+        .join('employees', 'employees.id', 'request_overtimes.request_by')
+        .where({
+          ['project_workers.employee_id']: auth.user?.employeeId,
+          ['request_overtimes.status']: RequestOTStatus.PENDING,
+        })
+        .andWhereNull('request_overtimes.confirm_by')
+        .paginate(request.input('page'), request.input('perPage', 15))
+
+      return response.json(overtimes.serialize().data)
+    } catch (error) {
+      Logger.warn(error)
+      return response.notFound({ code: codeError.notFound })
+    }
+  }
+
+  public async updateStatus({ auth, request, response }: HttpContextContract) {
+    try {
+      const payload = await request.validate({
+        schema: schema.create({
+          id: schema.number(),
+          status: schema.string(),
+        }),
+      })
+
+      const model = await RequestOvertime.findOrFail(payload.id)
+
+      if (model.status !== RequestOTStatus.PENDING) {
+        return response.notFound({ code: codeError.notFound, type: 'notFound' })
+      }
+
+      await model
+        .merge({
+          status: payload.status,
+        })
+        .save()
+
+      await model.refresh()
+      return response.ok(model.serialize())
+    } catch (error) {
+      return response.unprocessableEntity(error)
     }
   }
 }

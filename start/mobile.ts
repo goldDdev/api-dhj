@@ -49,7 +49,9 @@ Route.group(() => {
     Route.group(() => {
       Route.post('/', 'AdditionalHourController.create')
       Route.put('/', 'AdditionalHourController.update')
+      Route.put('/status', 'AdditionalHourController.updateStatus')
       Route.get('/', 'AdditionalHourController.index')
+      Route.get('/pending', 'AdditionalHourController.pendingOvertime')
       Route.get('/:id', 'AdditionalHourController.view')
       Route.delete('/:id', 'AdditionalHourController.destroy')
     }).prefix('additional')

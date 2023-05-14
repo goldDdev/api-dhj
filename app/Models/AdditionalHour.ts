@@ -70,6 +70,12 @@ export default class AdditionalHour extends BaseModel {
   @column()
   public status: string
 
+  @column({ columnName: 'confirm_by', serializeAs: 'confirmBy' })
+  public confirmBy: number
+
+  @column({ columnName: 'confirm_by', serializeAs: 'confirmStatus' })
+  public confirmStatus: string
+
   @column({ columnName: 'note', serializeAs: 'note' })
   public note: string
 

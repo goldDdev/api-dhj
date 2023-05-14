@@ -7,28 +7,45 @@ export default class TrackingsController {
     if (!request.input('projectId') || !request.input('date')) return response.send({ data: [] })
     const project = await Project.findOrFail(request.input('projectId'))
 
+    console.log('')
+    console.log('input >>>> >', request.input('date'))
+    console.log('project >', project.id)
+
     const tracks = (
       await Database.rawQuery(
         `SELECT 
-        DISTINCT ON(employee_id)
-        tr.id,
-        project_id,
-        projects.latitude AS project_latitude,
-        projects.longitude AS project_longitude,
-        employee_id,
-        employees.name,
-        employees.role,
-        tr.latitude,
-        tr.longitude,
-        tr.created_at
-      FROM
-        (SELECT * FROM trackings WHERE DATE(tr.created_at) = :date ORDER BY id DESC ) as tr
-      JOIN projects ON projects.id = tr.project_id
-      JOIN employees ON employees.id = tr.employee_id
+          DISTINCT ON(employee_id)
+          tr.id,
+          project_id,
+          projects.latitude AS project_latitude,
+          projects.longitude AS project_longitude,
+          employee_id,
+          employees.name,
+          employees.role,
+          tr.latitude,
+          tr.longitude,
+          tr.created_at
+        FROM
+          (SELECT * FROM trackings WHERE DATE(tr.created_at) = :date
+          AND project_id = :projectId ORDER BY id DESC) as tr
+        JOIN projects ON projects.id = tr.project_id
+        JOIN employees ON employees.id = tr.employee_id
+        
       `,
-        { date: request.input('date', now) }
+        { date: request.input('date', now), projectId: project.id }
       )
     ).rows
+    console.log('tracks >', tracks, request.input('date', now))
+    console.log(
+      'cek data >',
+      (
+        await Database.rawQuery(`
+          SELECT * FROM trackings as tr 
+          WHERE project_id = 19
+          ORDER BY id desc;
+        `)
+      ).rows
+    )
 
     // TODO : employee project but not in trackings ?
 

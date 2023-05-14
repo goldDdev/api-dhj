@@ -3,6 +3,7 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import { schema } from '@ioc:Adonis/Core/Validator'
 import codeError from 'Config/codeError'
 import Tracking from 'App/Models/Tracking'
+import { DateTime } from 'luxon'
 
 export default class TrackingController {
   public async create({ auth, request, response }: HttpContextContract) {
@@ -19,7 +20,13 @@ export default class TrackingController {
       })
       const { projectId, latitude, longitude } = payload
       await Tracking.create(
-        { projectId, latitude, longitude, employeeId: currentUser.employeeId },
+        {
+          projectId,
+          latitude,
+          longitude,
+          employeeId: currentUser.employeeId,
+          createdAt: DateTime.local({ zone: 'UTC+7' }),
+        },
         { client: trx }
       )
       await trx.commit()

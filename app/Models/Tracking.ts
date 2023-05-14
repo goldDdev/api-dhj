@@ -20,8 +20,7 @@ export default class Tracking extends BaseModel {
   public longitude: number
 
   @column.dateTime({
-    autoCreate: true,
-    consume: (value) => DateTime.local({ zone: 'UTC+7' }).toSQL(),
+    autoCreate: false,
   })
   public createdAt: DateTime
 

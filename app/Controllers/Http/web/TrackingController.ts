@@ -6,7 +6,9 @@ export default class TrackingsController {
   public async index({ request, response, now }: HttpContextContract) {
     if (!request.input('projectId') || !request.input('date')) return response.send({ data: [] })
     const project = await Project.findOrFail(request.input('projectId'))
-    console.log('input >', request.input('date'))
+
+    console.log('')
+    console.log('input >>>> >', request.input('date'))
     console.log('project >', project.id)
 
     const tracks = (
@@ -35,12 +37,10 @@ export default class TrackingsController {
     ).rows
     console.log('tracks >', tracks, request.input('date', now))
     console.log(
-      'cek >',
+      'cek data >',
       (
         await Database.rawQuery(`
           SELECT * FROM trackings as tr 
-          WHERE DATE(tr.created_at) = '2023-05-14'
-          AND project_id = 19
           ORDER BY id desc;
         `)
       ).rows

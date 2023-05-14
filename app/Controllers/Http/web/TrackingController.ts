@@ -28,18 +28,21 @@ export default class TrackingsController {
         JOIN projects ON projects.id = tr.project_id
         JOIN employees ON employees.id = tr.employee_id
         WHERE DATE(tr.created_at) = :date
+        AND project_id = :projectId
       `,
-        { date: request.input('date', now) }
+        { date: request.input('date', now), projectId: project.id }
       )
     ).rows
     console.log('tracks >', tracks, request.input('date', now))
     console.log(
       'cek >',
       (
-        await Database.rawQuery(
-          'SELECT * FROM trackings as tr WHERE DATE(tr.created_at) = :date ORDER BY id DESC',
-          { date: request.input('date', now) }
-        )
+        await Database.rawQuery(`
+          SELECT * FROM trackings as tr 
+          WHERE DATE(tr.created_at) = '2023-05-14'
+          AND project_id = 19
+          ORDER BY id desc;
+        `)
       ).rows
     )
 

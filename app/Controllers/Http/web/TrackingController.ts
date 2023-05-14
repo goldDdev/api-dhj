@@ -7,7 +7,7 @@ export default class TrackingsController {
     if (!request.input('projectId') || !request.input('date')) return response.send({ data: [] })
     const project = await Project.findOrFail(request.input('projectId'))
     console.log('input >', request.input('date'))
-    console.log('project >', project)
+    console.log('project >', project.id)
 
     const tracks = (
       await Database.rawQuery(
@@ -32,8 +32,16 @@ export default class TrackingsController {
         { date: request.input('date', now) }
       )
     ).rows
-    console.log('tracks >', tracks)
-    console.log('cek >', (await Database.rawQuery('SELECT * FROM trackings ORDER BY id DESC')).rows)
+    console.log('tracks >', tracks, request.input('date', now))
+    console.log(
+      'cek >',
+      (
+        await Database.rawQuery(
+          'SELECT * FROM trackings as tr WHERE DATE(tr.created_at) = :date ORDER BY id DESC',
+          { date: request.input('date', now) }
+        )
+      ).rows
+    )
 
     // TODO : employee project but not in trackings ?
 

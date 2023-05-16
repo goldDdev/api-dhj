@@ -339,7 +339,6 @@ export default class ProjectsController {
         .select(
           'project_boqs.name',
           'project_boqs.id',
-          'project_boqs.boq_id',
           'price',
           'unit',
           'project_boqs.type_unit',
@@ -354,7 +353,6 @@ export default class ProjectsController {
           'progres_at',
           'progres_by'
         )
-        .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
         .withScopes((scope) => {
           scope.withLastProgres()
           scope.withLastPlan(now)

@@ -45,28 +45,27 @@ export default class DailyPlanController {
       )
       .orderBy('date', 'asc')
 
-    const projects = queryPlan.reduce((p: any[], n) => {
-      const index = p.findIndex((v) => v && v.projectId === n.projectId)
+    const employees = queryPlan.reduce((p: any[], n) => {
+      const index = p.findIndex((v) => v && v.employeeId === n.employeeId)
       if (index === -1) {
         p.push(n.serialize())
       }
       return p
     }, [])
 
-    const newProjects = projects.map((value) => {
+    const newProjects = employees.map((value) => {
       const prj = queryPlan
-        .filter((v) => v.projectId === value.projectId)
+        .filter((v) => v.employeeId === value.employeeId)
         .reduce((p: any[], n) => {
-          const index = p.findIndex((v) => v && v.employeeId === n.employeeId)
+          const index = p.findIndex((v) => v && v.projectId === n.projectId)
           const startAt = DateTime.fromFormat(n.date, 'yyyy-MM-dd')
 
           if (index > -1) {
             p[index]['plans'] = p[index]['plans'].concat([
               {
                 date: n.date,
-                name: n.serialize().name,
-                role: n.serialize().role,
-                employeeId: n.employeeId,
+                projectName: n.serialize().projectName,
+                projectId: n.projectId,
                 id: n.id,
                 day: startAt.day,
               },
@@ -74,13 +73,12 @@ export default class DailyPlanController {
           } else {
             p.push({
               projectName: n.serialize().projectName,
-              employeeId: n.employeeId,
+              projectId: n.projectId,
               plans: [
                 {
                   date: n.date,
-                  name: n.serialize().name,
-                  role: n.serialize().role,
-                  employeeId: n.employeeId,
+                  projectName: n.serialize().projectName,
+                  projectId: n.projectId,
                   id: n.id,
                   day: startAt.day,
                 },
@@ -91,9 +89,10 @@ export default class DailyPlanController {
         }, [])
 
       return {
-        projectId: value.projectId,
-        projectName: value.projectName,
-        data: queryPlan.filter((v) => v.projectId === value.projectId),
+        employeeId: value.employeeId,
+        name: value.name,
+        role: value.role,
+        data: queryPlan.filter((v) => v.employeeId === value.employeeId),
         employees: prj,
       }
     })

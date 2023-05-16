@@ -30,11 +30,18 @@ export default class ProjectBoq extends BaseModel {
   @column({ columnName: 'type_unit', serializeAs: 'typeUnit' })
   public typeUnit: string
 
-  @column()
+  @column({ consume: (value) => parseFloat(value || 0) })
   public unit: number
 
-  @column({ consume: (value) => +value })
+  @column({ consume: (value) => +(value || 0) })
   public price: number
+
+  @column({
+    columnName: 'total_price',
+    serializeAs: 'totalPrice',
+    consume: (value) => +(value || 0),
+  })
+  public totalPrice: number
 
   @column({ columnName: 'additional_unit', serializeAs: 'additionalUnit' })
   public additionalUnit: number

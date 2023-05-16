@@ -4,7 +4,8 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import Boq from 'App/Models/Boq'
 import ProjectBoq from 'App/Models/ProjectBoq'
 import ProjectProgres from 'App/Models/ProjectProgres'
-
+import omit from 'lodash/omit'
+import Logger from '@ioc:Adonis/Core/Logger'
 export default class ProjectBoqController {
   public async index({ now, response, request }: HttpContextContract) {
     const query = await ProjectBoq.query()
@@ -26,9 +27,9 @@ export default class ProjectBoqController {
         'end_date',
         'progres',
         'progres_at',
-        'progres_by'
+        'progres_by',
+        'total_price'
       )
-      .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
       .withScopes((scope) => {
         scope.withLastProgres()
         scope.withLastPlan(now)
@@ -96,25 +97,42 @@ export default class ProjectBoqController {
     try {
       const payload = await request.validate({
         schema: schema.create({
+          name: schema.string(),
+          typeUnit: schema.string(),
           projectId: schema.number(),
-          boqId: schema.number(),
-          unit: schema.number.optional(),
+          unit: schema.number(),
           price: schema.number.optional(),
+          totalPrice: schema.number.optional(),
         }),
       })
 
-      const boq = await Boq.findOrFail(payload.boqId)
-      const model = await ProjectBoq.create({
-        ...payload,
-        name: boq?.name,
-        typeUnit: boq?.typeUnit,
-      })
+      const model = await ProjectBoq.create(payload)
       await model.refresh()
 
       return response.created({
-        data: model.serialize({}),
+        data: model.serialize(),
       })
     } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async import({ request, response }: HttpContextContract) {
+    try {
+      const payload = await request.validate({
+        schema: schema.create({
+          projectId: schema.number(),
+          items: schema.array().anyMembers(),
+        }),
+      })
+
+      await ProjectBoq.createMany(
+        payload.items.map((v) => ({ ...omit(v, ['row']), projectId: payload.projectId }))
+      )
+
+      return response.noContent()
+    } catch (error) {
+      Logger.error(error)
       return response.unprocessableEntity({ error })
     }
   }
@@ -124,15 +142,17 @@ export default class ProjectBoqController {
       const payload = await request.validate({
         schema: schema.create({
           id: schema.number(),
-          boqId: schema.number(),
-          unit: schema.number.optional(),
+          name: schema.string(),
+          typeUnit: schema.string(),
+          projectId: schema.number(),
+          unit: schema.number(),
           price: schema.number.optional(),
+          totalPrice: schema.number.optional(),
           additionalUnit: schema.number.optional(),
           additionalPrice: schema.number.optional(),
         }),
       })
 
-      const boq = await Boq.findOrFail(payload.boqId)
       const model = await ProjectBoq.findOrFail(payload.id)
       if (!model) {
         return response.notFound({
@@ -140,11 +160,11 @@ export default class ProjectBoqController {
         })
       }
 
-      await model.merge({ ...payload, name: boq?.name, typeUnit: boq?.typeUnit }).save()
+      await model.merge(omit(payload, ['id'])).save()
       await model.refresh()
 
       return response.created({
-        data: model.serialize({}),
+        data: model.serialize(),
       })
     } catch (error) {
       return response.unprocessableEntity({ error })
@@ -208,7 +228,7 @@ export default class ProjectBoqController {
       await model.refresh()
 
       return response.created({
-        data: model.serialize({}),
+        data: model.serialize(),
       })
     } catch (error) {
       return response.unprocessableEntity({ error })

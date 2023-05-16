@@ -62,6 +62,7 @@ Route.group(() => {
       Route.post('/kom', 'ProjectKomController.create')
       Route.put('/kom', 'ProjectKomController.update')
       Route.post('/boq', 'ProjectBoqController.create')
+      Route.post('/boq/import', 'ProjectBoqController.import')
       Route.put('/boq', 'ProjectBoqController.update')
       Route.put('/boq/value', 'ProjectBoqController.updateValue')
       Route.put('/overtime', 'ProjectOvertimeController.update')

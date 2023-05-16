@@ -21,12 +21,32 @@ export default class ProjectKom extends BaseModel {
   @column({
     columnName: 'date_plan',
     serializeAs: 'datePlan',
-    consume: (value) => moment(value).format('yyyy-MM-DD'),
+    consume: (value) => (value ? moment(value).format('yyyy-MM-DD') : null),
   })
   public datePlan: string
 
+  @column({
+    columnName: 'revise_1',
+    serializeAs: 'revise1',
+    consume: (value) => (value ? moment(value).format('yyyy-MM-DD') : null),
+  })
+  public revise1: string
+
+  @column({
+    columnName: 'revise_2',
+    serializeAs: 'revise2',
+    consume: (value) => (value ? moment(value).format('yyyy-MM-DD') : null),
+  })
+  public revise2: string
+
   @column({ columnName: 'time_plan', serializeAs: 'timePlan' })
   public timePlan: string
+
+  @column({ columnName: 'revise_time_1', serializeAs: 'reviseTime1' })
+  public reviseTime1: string
+
+  @column({ columnName: 'revise_time_2', serializeAs: 'reviseTime2' })
+  public reviseTime2: string
 
   @column({ columnName: 'actual_date', serializeAs: 'actualDate' })
   public actualDate: string

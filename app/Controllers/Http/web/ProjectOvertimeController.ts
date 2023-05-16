@@ -67,6 +67,9 @@ export default class ProjectOvertimeController {
       .if(request.input('status'), (query) => {
         query.andWhere('request_overtimes.status', '=', request.input('status'))
       })
+      .if(request.input('approval'), (query) => {
+        query.andWhere('request_overtimes.confirm_status', '=', request.input('approval'))
+      })
       .if(request.input('absentAt'), (query) => {
         query.andWhere('absent_at', '=', request.input('absentAt'))
       })
@@ -82,6 +85,11 @@ export default class ProjectOvertimeController {
       query.serialize({
         relations: {
           actionEmployee: {
+            fields: {
+              pick: ['name', 'role'],
+            },
+          },
+          confirmEmployee: {
             fields: {
               pick: ['name', 'role'],
             },

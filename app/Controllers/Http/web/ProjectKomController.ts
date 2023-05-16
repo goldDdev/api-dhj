@@ -11,7 +11,7 @@ export default class ProjectKomController {
         .if(request.input('title'), (query) =>
           query.andWhereILike('title', `%${request.input('title')}%`)
         )
-        .orderBy(request.input('orderBy', 'id'), request.input('order', 'desc'))
+        .orderBy(request.input('orderBy', 'date_plan'), request.input('order', 'desc'))
         .paginate(request.input('page', 1), request.input('perPage', 15))
     )
   }
@@ -59,6 +59,10 @@ export default class ProjectKomController {
           projectId: schema.number(),
           title: schema.string(),
           datePlan: schema.string(),
+          revise1: schema.string.optional(),
+          revise2: schema.string.optional(),
+          reviseTime1: schema.string.optional(),
+          reviseTime2: schema.string.optional(),
           timePlan: schema.string.optional(),
           actualDate: schema.string.optional(),
           actualTime: schema.string.optional(),

@@ -63,6 +63,7 @@ export default class ProjectsController {
           startAt: schema.date.optional({}, []),
           targetDate: schema.string.optional(),
           finishAt: schema.date.optional({}, []),
+          duration: schema.number.optional(),
           note: schema.string.optional(),
           location: schema.string.optional(),
         }),
@@ -103,6 +104,7 @@ export default class ProjectsController {
           price: schema.number.optional(),
           latitude: schema.number.optional(),
           longitude: schema.number.optional(),
+          duration: schema.number.optional(),
           status: schema.enum.optional(Object.keys(ProjectStatus)),
           contact: schema.string.optional(),
           startAt: schema.date.optional({}),
@@ -113,11 +115,11 @@ export default class ProjectsController {
         }),
       })
 
-      if (!!payload.startAt && !!payload.finishAt) {
-        Object.assign(payload, {
-          duration: moment(request.input('finishAt'), true).diff(request.input('startAt'), 'day'),
-        })
-      }
+      // if (!!payload.startAt && !!payload.finishAt) {
+      //   Object.assign(payload, {
+      //     duration: moment(request.input('finishAt'), true).diff(request.input('startAt'), 'day'),
+      //   })
+      // }
       const model = await Project.find(request.input('id'))
       if (!model) {
         return response.notFound({

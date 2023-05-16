@@ -262,7 +262,7 @@ export default class AdditionalHourController {
     }
   }
 
-  public async pendingOvertime({ request, response, auth }: HttpContextContract) {
+  public async pendingOvertime({ request, response, auth, month, year }: HttpContextContract) {
     try {
       const overtimes = await RequestOvertime.query()
         .select(
@@ -305,7 +305,18 @@ export default class AdditionalHourController {
           ['project_workers.employee_id']: auth.user?.employeeId,
           ['request_overtimes.status']: RequestOTStatus.PENDING,
         })
-        .andWhereNull('request_overtimes.confirm_by')
+        .andWhereRaw('EXTRACT(MONTH FROM request_overtimes.absent_at) = :month ', {
+          month: request.input('month', month),
+        })
+        .andWhereRaw('EXTRACT(YEAR FROM request_overtimes.absent_at) = :year ', {
+          year: request.input('year', year),
+        })
+        .if(request.input('status'), (query) => {
+          query.andWhere('request_overtimes.status', request.input('status'))
+        })
+        .if(request.input('approval'), (query) => {
+          query.andWhere('request_overtimes.confirm_status', request.input('approval'))
+        })
         .paginate(request.input('page'), request.input('perPage', 15))
 
       return response.json(overtimes.serialize().data)

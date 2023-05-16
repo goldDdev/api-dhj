@@ -3,6 +3,7 @@ import { BaseModel, HasMany, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import ProjectWorker from './ProjectWorker'
 import ProjectAbsent from './ProjectAbsent'
 import ProjectBoq from './ProjectBoq'
+import moment from 'moment'
 
 export enum ProjectStatus {
   DRAFT = 'DRAFT',
@@ -37,7 +38,11 @@ export default class Project extends BaseModel {
   @column.date({ columnName: 'finish_at', serializeAs: 'finishAt' })
   public finishAt: DateTime
 
-  @column({ columnName: 'target_date', serializeAs: 'targetDate' })
+  @column({
+    columnName: 'target_date',
+    serializeAs: 'targetDate',
+    consume: (value) => moment(value).format('yyyy-MM-DD'),
+  })
   public targetDate: string
 
   @column({ columnName: 'duration', serializeAs: 'duration' })

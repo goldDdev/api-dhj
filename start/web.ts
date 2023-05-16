@@ -35,6 +35,16 @@ Route.group(() => {
     }).prefix('weekly-plan')
 
     Route.group(() => {
+      Route.get('/', 'DailyPlanController.index')
+      Route.get('/project', 'DailyPlanController.projects')
+      Route.get('/employee', 'DailyPlanController.employees')
+      Route.post('/', 'DailyPlanController.store')
+      Route.put('/', 'DailyPlanController.update')
+      Route.post('/validation', 'DailyPlanController.validation')
+      Route.delete('/:id', 'DailyPlanController.destroy')
+    }).prefix('daily-plan')
+
+    Route.group(() => {
       Route.get('/', 'PayrolController.index')
       Route.get('/:id', 'PayrolController.view')
       Route.get('/:id/employee', 'PayrolController.employee')

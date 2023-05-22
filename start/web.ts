@@ -105,6 +105,14 @@ Route.group(() => {
       Route.delete('/:id', 'ProjectProgresController.delete')
     }).prefix('progres')
 
+    Route.group(() => {
+      Route.get('/', 'CenterLocationController.index')
+      Route.put('/', 'CenterLocationController.update')
+      Route.post('/', 'CenterLocationController.store')
+      Route.get('/:id', 'CenterLocationController.show')
+      Route.delete('/:id', 'CenterLocationController.destroy')
+    }).prefix('center-location')
+
     Route.get('/tracking', 'TrackingController.index')
     Route.get('/current', 'UsersController.current')
     Route.post('/logout', 'AuthController.logout')

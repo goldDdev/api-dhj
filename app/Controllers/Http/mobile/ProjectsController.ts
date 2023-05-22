@@ -340,6 +340,7 @@ export default class ProjectsController {
           'project_boqs.name',
           'project_boqs.id',
           'price',
+          'total_price',
           'unit',
           'project_boqs.type_unit',
           'project_boqs.updated_at',
@@ -375,7 +376,8 @@ export default class ProjectsController {
             )
           }
         )
-      return response.ok(query)
+        .paginate(request.input('page', 1), request.input('perPage', 15))
+      return response.ok(query.serialize().data)
     } catch (error) {
       return response.badRequest(error)
     }

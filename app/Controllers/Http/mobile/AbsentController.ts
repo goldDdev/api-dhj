@@ -6,6 +6,7 @@ import Logger from '@ioc:Adonis/Core/Logger'
 import Setting, { SettingCode } from 'App/Models/Setting'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import { DateTime } from 'luxon'
+import CenterLocation from 'App/Models/CenterLocation'
 
 export default class AbsentController {
   public async index({ auth, response, month, year, request }: HttpContextContract) {
@@ -400,6 +401,15 @@ export default class AbsentController {
 
   public async addSingle({ auth, request, now, response }: HttpContextContract) {
     try {
+      const radius = await Setting.query().where({ code: SettingCode.RADIUS }).first()
+      const location = await CenterLocation.query()
+        .whereRaw(`calculate_distance(latitude, longitude, :lat, :long, 'MTR') <= :radius`, {
+          radius: +(radius?.value || 0),
+          lat: request.input('latitude', 0),
+          long: request.input('longitude', 0),
+        })
+        .first()
+
       const { hour, minute } = await Database.from('settings')
         .select(
           Database.raw(
@@ -443,6 +453,7 @@ export default class AbsentController {
           lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
           latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
           absent: request.input('absent', 'P'),
+          ...(location ? { note: location.name } : {}),
         })
       }
       return response.noContent()

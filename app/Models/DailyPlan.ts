@@ -22,6 +22,15 @@ export default class DailyPlan extends BaseModel {
   })
   public date: string
 
+  @column({ columnName: 'location_at', serializeAs: 'locationAt' })
+  public locationAt: string
+
+  @column({ consume: (value) => parseFloat(value) })
+  public latitude: number
+
+  @column({ consume: (value) => parseFloat(value) })
+  public longitude: number
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 

@@ -5,6 +5,7 @@ import Project from 'App/Models/Project'
 import DailyPlan from 'App/Models/DailyPlan'
 import { DateTime } from 'luxon'
 import Logger from '@ioc:Adonis/Core/Logger'
+import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 
 export default class DailyPlanController {
   public async index({ response, month, year, request }: HttpContextContract) {
@@ -67,6 +68,9 @@ export default class DailyPlanController {
                 projectName: n.serialize().projectName,
                 projectId: n.projectId,
                 id: n.id,
+                latitude: n.latitude,
+                longitude: n.longitude,
+                locationAt: n.locationAt,
                 day: startAt.day,
               },
             ])
@@ -80,6 +84,9 @@ export default class DailyPlanController {
                   projectName: n.serialize().projectName,
                   projectId: n.projectId,
                   id: n.id,
+                  latitude: n.latitude,
+                  longitude: n.longitude,
+                  locationAt: n.locationAt,
                   day: startAt.day,
                 },
               ],
@@ -137,6 +144,10 @@ export default class DailyPlanController {
         }),
       })
 
+      const workers = await ProjectWorker.query()
+        .where({ employee_id: payload.employeeId, project_id: payload.projectId })
+        .first()
+
       const unique = await DailyPlan.query()
         .where({
           employeeId: request.input('employeeId', 0),
@@ -164,6 +175,18 @@ export default class DailyPlanController {
       }
 
       const model = await DailyPlan.create(payload)
+      if (!workers) {
+        const emp = await Employee.find(payload.employeeId)
+        if (emp) {
+          await ProjectWorker.create({
+            employeeId: payload.employeeId,
+            projectId: payload.projectId,
+            role: emp.role,
+            status: ProjectWorkerStatus.ACTIVE,
+            joinAt: DateTime.now(),
+          })
+        }
+      }
       return response.created({ data: model.serialize() })
     } catch (error) {
       return response.unprocessableEntity({ error })

@@ -8,6 +8,7 @@ export enum SettingCode {
   OVERTIME_PRICE_PER_HOUR = 'OVERTIME_PRICE_PER_HOUR',
   LATETIME_PRICE_PER_MINUTE = 'LATETIME_PRICE_PER_MINUTE',
   LATE_TRESHOLD = 'LATE_TRESHOLD',
+  RADIUS = 'RADIUS',
 }
 
 export default class Setting extends BaseModel {

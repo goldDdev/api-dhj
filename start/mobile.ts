@@ -66,6 +66,7 @@ Route.group(() => {
 
     Route.group(() => {
       Route.post('/', 'TrackingController.create')
+      Route.post('/daily', 'TrackingController.daily')
     }).prefix('tracking')
 
     Route.get('/settings', 'SettingController.index')

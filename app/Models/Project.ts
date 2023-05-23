@@ -92,6 +92,7 @@ export default class Project extends BaseModel {
   public serializeExtras() {
     return {
       totalWorker: this.$extras.totalWoker,
+      radius: this.$extras.radius,
     }
   }
 }

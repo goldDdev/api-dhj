@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, HasMany, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import InventoryRequestDetail from './InventoryRequestDetail'
+import moment from 'moment'
 
 export default class InventoryRequest extends BaseModel {
   public static table = 'inventory_requests'
@@ -8,10 +9,18 @@ export default class InventoryRequest extends BaseModel {
   @column({ isPrimary: true })
   public id: number
 
-  @column({ columnName: 'start_date', serializeAs: 'startDate' })
+  @column({
+    columnName: 'start_date',
+    serializeAs: 'startDate',
+    consume: (value) => moment(value).format('yyyy-MM-DD'),
+  })
   public startDate: string
 
-  @column({ columnName: 'end_date', serializeAs: 'endDate' })
+  @column({
+    columnName: 'end_date',
+    serializeAs: 'endDate',
+    consume: (value) => moment(value).format('yyyy-MM-DD'),
+  })
   public endDate: string
 
   @column({ columnName: 'project_id', serializeAs: 'projectId' })

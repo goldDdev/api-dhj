@@ -131,9 +131,15 @@ export default class InventoryController {
       const query = await InventoryRequest.query()
         .preload('items')
         .where('project_id', request.param('id'))
+        .if(request.input('date'), (query) => {
+          query.andWhereRaw('start_date <= :date AND end_date >=:date', {
+            date: request.input('date'),
+          })
+        })
         .orderBy(request.input('orderBy', 'id'), request.input('order', 'asc'))
+        .paginate(request.input('page', 1), request.input('perPage', 15))
 
-      return response.ok(query)
+      return response.ok(query.serialize().data)
     } catch (error) {
       console.error(error)
       return response.internalServerError({ code: codeError.badRequest, type: 'Server error' })

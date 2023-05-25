@@ -5,35 +5,7 @@ import PlanBoq from 'App/Models/PlanBoq'
 import codeError from 'Config/codeError'
 
 export default class PlanBoqController {
-  public async create({ auth, response, request }: HttpContextContract) {
-    try {
-      const payload = await request.validate({
-        schema: schema.create({
-          projectId: schema.number(),
-          projectBoqId: schema.number(),
-          progress: schema.number(),
-          startDate: schema.string(),
-          endDate: schema.string(),
-        }),
-      })
-
-      await PlanBoq.create({
-        employeeId: auth.user!.employeeId,
-        projectId: payload.projectId,
-        projectBoqId: payload.projectBoqId,
-        progress: payload.progress,
-        startDate: payload.startDate,
-        endDate: payload.endDate,
-      })
-
-      return response.noContent()
-    } catch (error) {
-      Logger.info(error)
-      return response.notFound({ code: codeError.badRequest, type: 'badRequest' })
-    }
-  }
-
-  public async listPlan({ auth, response, request, month, year }: HttpContextContract) {
+  public async index({ auth, response, request, month, year }: HttpContextContract) {
     const query = await PlanBoq.query()
       .select(
         'plan_boqs.project_boq_id',
@@ -43,13 +15,17 @@ export default class PlanBoqController {
         'end_date',
         'project_boqs.type_unit',
         'progress',
-        'employee_id'
+        'employee_id',
+        'employees.name AS employee_name',
+        'projects.name AS project_name'
       )
 
       .withScopes((scope) => {
         scope.withProjectBoqs()
         scope.withEmployee()
+        scope.withProject()
       })
+      .where('plan_boqs.project_id', request.param('id', 0))
       .if(request.input('name'), (query) => {
         query.whereILike('project_boqs.name', `%${request.input('name')}%`)
       })
@@ -102,6 +78,34 @@ export default class PlanBoqController {
       .paginate(request.input('page', 1), request.input('perPage', 15))
 
     return response.ok(query.serialize().data)
+  }
+
+  public async create({ auth, response, request }: HttpContextContract) {
+    try {
+      const payload = await request.validate({
+        schema: schema.create({
+          projectId: schema.number(),
+          projectBoqId: schema.number(),
+          progress: schema.number(),
+          startDate: schema.string(),
+          endDate: schema.string(),
+        }),
+      })
+
+      await PlanBoq.create({
+        employeeId: auth.user!.employeeId,
+        projectId: payload.projectId,
+        projectBoqId: payload.projectBoqId,
+        progress: payload.progress,
+        startDate: payload.startDate,
+        endDate: payload.endDate,
+      })
+
+      return response.noContent()
+    } catch (error) {
+      Logger.info(error)
+      return response.notFound({ code: codeError.badRequest, type: 'badRequest' })
+    }
   }
 
   public async destroy({ request, response }: HttpContextContract) {

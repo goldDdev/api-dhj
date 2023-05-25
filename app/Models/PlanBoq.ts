@@ -42,7 +42,8 @@ export default class PlanBoq extends BaseModel {
 
   public serializeExtras() {
     return {
-      name: this.$extras.name,
+      projectName: this.$extras.project_name,
+      employeeName: this.$extras.employee_name,
       typeUnit: this.$extras.type_unit,
       planBy: this.$extras.plan_by,
     }
@@ -54,6 +55,9 @@ export default class PlanBoq extends BaseModel {
 
   public static withProjectBoqs = scope((query) => {
     query.leftJoin('project_boqs', 'project_boqs.id', 'plan_boqs.project_boq_id')
-    query.leftJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
+  })
+
+  public static withProject = scope((query) => {
+    query.leftJoin('projects', 'projects.id', 'plan_boqs.project_id')
   })
 }

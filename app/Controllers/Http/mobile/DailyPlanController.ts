@@ -17,9 +17,13 @@ export default class DailyPlanController {
         scope.withEmployee()
       })
       .if(request.input('name'), (query) =>
-        query
-          .whereILike('name', `%${request.input('name')}%`)
-          .orWhereILike('typeUnit', `%${request.input('name')}%`)
+        query.whereILike('employees.name', `%${request.input('name')}%`)
+      )
+      .if(request.input('date'), (query) =>
+        query.andWhere('daily_plans.date', request.input('date'))
+      )
+      .if(request.input('projectId'), (query) =>
+        query.andWhere('daily_plans.project_id', request.input('projectId'))
       )
       .if(
         request.input('month'),
@@ -46,15 +50,14 @@ export default class DailyPlanController {
           })
       )
       .orderBy('date', 'asc')
+      .paginate(request.input('page'), request.input('perPage', 15))
 
     return response.json(
-      queryPlan.map((v) =>
-        v.serialize({
-          fields: {
-            omit: ['latitude', 'longitude', 'created_at', 'updated_at', 'location_at'],
-          },
-        })
-      )
+      queryPlan.serialize({
+        fields: {
+          omit: ['latitude', 'longitude', 'created_at', 'updated_at', 'location_at'],
+        },
+      }).data
     )
   }
 
@@ -80,9 +83,8 @@ export default class DailyPlanController {
         EmployeeType.OWNER,
       ])
       .orderBy('id', 'desc')
-    return response.json({
-      data: query.map((v) => v.serialize({ fields: { pick: ['id', 'name', 'role'] } })),
-    })
+      .paginate(request.input('page'), request.input('perPage', 15))
+    return response.ok(query.serialize({ fields: { pick: ['id', 'name', 'role'] } }).data)
   }
 
   public async store({ request, response }: HttpContextContract) {

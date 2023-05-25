@@ -43,6 +43,7 @@ Route.group(() => {
 
     Route.group(() => {
       Route.post('/progress', 'PlanBoqController.create')
+      Route.get('/:id/progress', 'PlanBoqController.index')
       Route.delete('/:id', 'PlanBoqController.destroy')
     }).prefix('plan')
 

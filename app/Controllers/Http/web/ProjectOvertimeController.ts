@@ -282,9 +282,11 @@ export default class ProjectOvertimeController {
             overtimePrice: model.overtimePrice,
             totalEarn: model.overtimeDuration * model.overtimePrice,
             requestBy: model.id,
-            actionBy: auth.user?.employeeId,
-            status: RequestOTStatus.CONFIRM,
+            actionBy: model.actionBy,
+            status: model.status,
             parentId: model.id,
+            confirmBy: auth.user?.employeeId,
+            confirmStatus: payload.status,
             type: 'PERSONAL',
           }))
         )

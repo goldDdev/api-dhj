@@ -18,7 +18,6 @@ export default class AdditionalHourController {
         'request_overtimes.id',
         'request_overtimes.status',
         'projects.name AS project_name',
-        'projects.status AS project_status',
         Database.raw(
           `(
             CASE
@@ -78,7 +77,21 @@ export default class AdditionalHourController {
       .paginate(request.input('page'), request.input('perPage', 15))
 
     return response.ok(
-      query.serialize().data.map((v) => ({ ...v, totalEarn: v.totalEarn * v.totalWorker }))
+      query.serialize({
+        fields: {
+          omit: [
+            'totalEarn',
+            'employeeId',
+            'overtimePrice',
+            'actionBy',
+            'requestBy',
+            'confirmBy',
+            'projectId',
+            'created_at',
+            'updated_at',
+          ],
+        },
+      }).data
     )
   }
 
@@ -150,7 +163,6 @@ export default class AdditionalHourController {
     try {
       const payload = await request.validate({
         schema: schema.create({
-          employeeId: schema.number(),
           projectId: schema.number(),
           comeAt: schema.string.optional(),
           duration: schema.number(),
@@ -160,7 +172,7 @@ export default class AdditionalHourController {
 
       const find = await RequestOvertime.query()
         .where({
-          employee_id: payload.employeeId,
+          employee_id: auth.user?.employeeId,
           project_id: payload.projectId,
           absent_at: now,
         })
@@ -169,7 +181,7 @@ export default class AdditionalHourController {
 
       const absent = await ProjectAbsent.query()
         .where({
-          employee_id: payload.employeeId,
+          employee_id: auth.user?.employeeId,
           project_id: payload.projectId,
           absent_at: now,
           absent: 'P',
@@ -187,7 +199,6 @@ export default class AdditionalHourController {
         })
       }
 
-      const employee = await Employee.findOrFail(payload.employeeId)
       const setting = await Setting.findByOrFail('code', SettingCode.OVERTIME_PRICE_PER_HOUR)
       const { hour, minute } = await Database.from('settings')
         .select(
@@ -204,14 +215,14 @@ export default class AdditionalHourController {
         .toFormat('HH:mm')
 
       const model = await RequestOvertime.create({
-        employeeId: payload.employeeId,
+        employeeId: auth.user?.employeeId,
         projectId: payload.projectId,
         absentAt: now,
         comeAt: payload.comeAt ? payload.comeAt : startOt.toFormat('HH:mm'),
         closeAt: payload.comeAt
           ? startOt.plus({ minutes: payload.duration }).toFormat('HH:mm')
           : closeAt,
-        type: employee.role === EmployeeType.MANDOR ? 'TEAM' : 'PERSONAL',
+        type: auth.user?.employee.role === EmployeeType.MANDOR ? 'TEAM' : 'PERSONAL',
         requestBy: auth.user?.employeeId,
         overtimePrice: +setting.value,
         overtimeDuration: payload.duration,
@@ -230,18 +241,14 @@ export default class AdditionalHourController {
       const payload = await request.validate({
         schema: schema.create({
           id: schema.number(),
-          employeeId: schema.number(),
           projectId: schema.number(),
-          absentAt: schema.string(),
           comeAt: schema.string.optional(),
-          type: schema.string.optional(),
           duration: schema.number(),
           note: schema.string.optional(),
         }),
       })
 
       const model = await RequestOvertime.findOrFail(payload.id)
-
       if (model.status !== 'PENDING') {
         return response.notFound({ code: codeError.notFound, type: 'notFound' })
       }
@@ -260,15 +267,14 @@ export default class AdditionalHourController {
       const closeAt = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
         .plus({ minutes: payload.duration })
         .toFormat('HH:mm')
+
       await model.merge({
-        employeeId: payload.employeeId,
         projectId: payload.projectId,
-        absentAt: payload.absentAt,
         comeAt: payload.comeAt ? payload.comeAt : startOt.toFormat('HH:mm'),
         closeAt: payload.comeAt
           ? startOt.plus({ minutes: payload.duration }).toFormat('HH:mm')
           : closeAt,
-        type: payload.type,
+        type: auth.user?.employee.role === EmployeeType.MANDOR ? 'TEAM' : 'PERSONAL',
         requestBy: auth.user?.employeeId,
         overtimePrice: +setting.value,
         overtimeDuration: payload.duration,
@@ -289,7 +295,7 @@ export default class AdditionalHourController {
       await model.delete()
       return response.noContent()
     } catch (error) {
-      return response.notFound({ code: codeError.notFound })
+      return response.notFound({ code: codeError.notFound, type: 'notFound' })
     }
   }
 
@@ -298,6 +304,7 @@ export default class AdditionalHourController {
       const overtimes = await RequestOvertime.query()
         .select(
           '*',
+          'request_overtimes.employee_id',
           'employees.role AS request_role',
           'request_overtimes.id',
           'request_overtimes.status',
@@ -350,7 +357,23 @@ export default class AdditionalHourController {
         })
         .paginate(request.input('page'), request.input('perPage', 15))
 
-      return response.json(overtimes.serialize().data)
+      return response.json(
+        overtimes.serialize({
+          fields: {
+            omit: [
+              'totalEarn',
+              'employeeId',
+              'overtimePrice',
+              'actionBy',
+              'requestBy',
+              'confirmBy',
+              'projectId',
+              'created_at',
+              'updated_at',
+            ],
+          },
+        }).data
+      )
     } catch (error) {
       Logger.warn(error)
       return response.notFound({ code: codeError.notFound })
@@ -375,13 +398,16 @@ export default class AdditionalHourController {
       await model
         .merge({
           status: payload.status,
+          actionBy: auth.user?.employeeId,
         })
         .save()
 
       await model.refresh()
       return response.ok(model.serialize())
     } catch (error) {
-      return response.unprocessableEntity(error)
+      Logger.warn(error)
+
+      return response.unprocessableEntity({ code: codeError.notFound, type: 'notFound' })
     }
   }
 }

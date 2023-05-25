@@ -34,7 +34,6 @@ export default class ProjectsController {
         query.andWhere('projects.status', request.input('status'))
       )
       .if(request.input('date'), (query) =>
-        // TODO : next step need combine with weekly plan each employee
         query
           .andWhere('projects.start_at', '<=', request.input('date'))
           .andWhere('projects.finish_at', '>=', request.input('date'))
@@ -79,14 +78,14 @@ export default class ProjectsController {
           .andWhere('project_workers.parent_id', work?.id || 0)
       })
 
-      await model.load('boqs', (query) => {
-        query.withScopes((scope) => {
-          scope.withLastProgres()
-          scope.withLastPlan(now)
-          scope.withTotalProgress()
-          scope.withTotalPending()
-        })
-      })
+      // await model.load('boqs', (query) => {
+      //   query.withScopes((scope) => {
+      //     scope.withLastProgres()
+      //     scope.withLastPlan(now)
+      //     scope.withTotalProgress()
+      //     scope.withTotalPending()
+      //   })
+      // })
 
       const models = await ProjectAbsent.query()
         .select(
@@ -131,21 +130,23 @@ export default class ProjectsController {
                 omit: ['projectId', 'employeeId'],
               },
             },
-            boqs: {
-              fields: {
-                omit: [
-                  'additionalUnit',
-                  'price',
-                  'additionalPrice',
-                  'boqId',
-                  'projectId',
-                  'createdAt',
-                  'updatedAt',
-                ],
-              },
-            },
+            // boqs: {
+            //   fields: {
+            //     pick: [],
+            //     omit: [
+            //       'additionalUnit',
+            //       'price',
+            //       'additionalPrice',
+            //       'boqId',
+            //       'projectId',
+            //       'createdAt',
+            //       'updatedAt',
+            //     ],
+            //   },
+            // },
           },
         }),
+        boqs: [],
         absents: models,
         summary,
         absentAt: models.length > 0 ? now : null,
@@ -243,7 +244,7 @@ export default class ProjectsController {
           project_id: request.param('id'),
           project_boq_id: payload.id,
         })
-        .andWhere('progres_at', request.input('date', now))
+        .andWhere('progres_at', payload.date ? payload.date : now)
         .first()
 
       if (!last) {
@@ -257,7 +258,7 @@ export default class ProjectsController {
           progres: payload.progres,
           submitedProgres: payload.progres,
           submitedBy: auth.user?.id,
-          progresAt: request.input('date', now),
+          progresAt: payload.date ? payload.date : now,
           employeeId: auth.user?.employeeId,
         })
         return response.noContent()
@@ -281,8 +282,7 @@ export default class ProjectsController {
         'submited_progres',
         'project_progres.created_at'
       )
-      .join('project_boqs', 'project_boqs.id', 'project_progres.project_boq_id')
-      .join('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
+      .leftJoin('project_boqs', 'project_boqs.id', 'project_progres.project_boq_id')
       .if(request.input('name'), (query) => {
         query.whereILike('project_boqs.name', `%${request.input('name')}%`)
       })
@@ -361,6 +361,9 @@ export default class ProjectsController {
           scope.withTotalPending()
         })
         .where('project_id', request.param('id'))
+        .if(request.input('name'), (query) => {
+          query.whereILike('project_boqs.name', `%${request.input('name')}%`)
+        })
         .if(request.input('name'), (query) => {
           query.whereILike('project_boqs.name', `%${request.input('name')}%`)
         })

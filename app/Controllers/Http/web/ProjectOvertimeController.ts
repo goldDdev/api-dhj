@@ -265,9 +265,7 @@ export default class ProjectOvertimeController {
       if (payload.status === RequestOTStatus.CONFIRM) {
         const absents = await ProjectAbsent.query()
           .select('*', 'project_absents.id')
-          .joinRaw(
-            'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
-          )
+          .withScopes((scope) => scope.withWorker())
           .where('project_absents.project_id', model.projectId)
           .andWhere({ absent_at: model.absentAt, absent: 'P' })
 
@@ -276,6 +274,8 @@ export default class ProjectOvertimeController {
             absentAt: model.absentAt,
             closeAt: model.closeAt,
             comeAt: model.comeAt,
+            actualClose: model.closeAt,
+            actualDuration: model.overtimeDuration,
             employeeId: v.employeeId,
             projectId: model.projectId,
             overtimeDuration: model.overtimeDuration,

@@ -79,6 +79,19 @@ export default class AdditionalHour extends BaseModel {
   @column({ columnName: 'note', serializeAs: 'note' })
   public note: string
 
+  @column({
+    columnName: 'actual_close',
+    serializeAs: 'actualClose',
+  })
+  public actualClose: string
+
+  @column({
+    columnName: 'actual_duration',
+    serializeAs: 'actualDuration',
+    consume: (value) => +value,
+  })
+  public actualDuration: number
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 

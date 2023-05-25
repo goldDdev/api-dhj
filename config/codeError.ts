@@ -7,4 +7,5 @@ export default {
   entity: 45,
   errors: 50,
   absentNotExist: 51,
+  existDaily: 52,
 }

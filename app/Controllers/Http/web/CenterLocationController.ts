@@ -1,5 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema } from '@ioc:Adonis/Core/Validator'
+import Database from '@ioc:Adonis/Lucid/Database'
 import CenterLocation from 'App/Models/CenterLocation'
 import omit from 'lodash/omit'
 
@@ -14,6 +15,36 @@ export default class CenterLocationController {
         .orderBy('id', 'desc')
         .paginate(request.input('page', 1), request.input('perPage', 15))
     )
+  }
+
+  public async all({ response, request }: HttpContextContract) {
+    const projects = await Database.from('projects')
+      .select(
+        'id',
+        'name',
+        Database.raw('latitude::float'),
+        Database.raw('longitude::float'),
+        Database.raw("COALESCE(null, 'PROJECT') AS type")
+      )
+      .if(request.input('name'), (query) => query.whereILike('name', `%${request.input('name')}%`))
+      .orderBy('id', 'desc')
+      .unionAll((query) => {
+        query
+          .from('center_locations')
+          .select(
+            'id',
+            'name',
+            Database.raw('latitude::float'),
+            Database.raw('longitude::float'),
+            Database.raw("COALESCE(null, 'LOCATION') AS type")
+          )
+          .if(request.input('name'), (query) =>
+            query.whereILike('name', `%${request.input('name')}%`)
+          )
+      })
+      .paginate(request.input('page', 1), request.input('perPage', 15))
+
+    return response.json(projects)
   }
 
   public async store({ request, response }: HttpContextContract) {

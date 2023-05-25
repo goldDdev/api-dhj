@@ -35,6 +35,19 @@ export default class InventoryRequest extends BaseModel {
   @column({ columnName: 'status' })
   public status: string
 
+  @column({
+    columnName: 'arrived_date',
+    serializeAs: 'arrivedDate',
+    consume: (value) => moment(value).format('yyyy-MM-DD'),
+  })
+  public arrivedDate: string
+
+  @column({
+    columnName: 'arrived_time',
+    serializeAs: 'arrivedTime',
+  })
+  public arrivedTime: string
+
   @column({ columnName: 'created_by', serializeAs: 'createdBy' })
   public createdBy: number
 

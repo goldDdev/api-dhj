@@ -5,6 +5,7 @@ import codeError from 'Config/codeError'
 import Inventory from 'App/Models/Inventory'
 import InventoryRequest from 'App/Models/InventoryRequest'
 import InventoryRequestDetail from 'App/Models/InventoryRequestDetail'
+import { DateTime } from 'luxon'
 
 export default class InventoryController {
   public async listMaterial({ request, response }: HttpContextContract) {
@@ -122,6 +123,30 @@ export default class InventoryController {
     } catch (error) {
       await trx.rollback()
       console.error(error)
+      return response.internalServerError({ code: codeError.badRequest, type: 'Server error' })
+    }
+  }
+
+  public async status({ request, response, now }: HttpContextContract) {
+    try {
+      const payload = await request.validate({
+        schema: schema.create({
+          id: schema.number(),
+          status: schema.string(),
+        }),
+      })
+
+      const model = await InventoryRequest.findOrFail(payload.id)
+      await model
+        .merge({
+          status: payload.status,
+          arrivedDate: now,
+          arrivedTime: DateTime.local({ zone: 'UTC+7' }).toFormat('HH:mm'),
+        })
+        .save()
+
+      return response.noContent()
+    } catch (error) {
       return response.internalServerError({ code: codeError.badRequest, type: 'Server error' })
     }
   }

@@ -62,12 +62,22 @@ Route.group(() => {
       Route.get('/request/:id/items', 'InventoryController.details')
       Route.get('/request/:id', 'InventoryController.view')
       Route.post('/request', 'InventoryController.create')
+      Route.put('/request-status', 'InventoryController.status')
     }).prefix('inventory')
 
     Route.group(() => {
       Route.post('/', 'TrackingController.create')
       Route.post('/daily', 'TrackingController.daily')
     }).prefix('tracking')
+
+    Route.group(() => {
+      Route.get('/', 'DailyPlanController.index')
+      Route.get('/project', 'DailyPlanController.projects')
+      Route.get('/employee', 'DailyPlanController.employees')
+      Route.post('/', 'DailyPlanController.store')
+      Route.put('/', 'DailyPlanController.update')
+      Route.delete('/:id', 'DailyPlanController.destroy')
+    }).prefix('daily-plan')
 
     Route.get('/settings', 'SettingController.index')
     Route.post('/logout', 'AuthController.logout')

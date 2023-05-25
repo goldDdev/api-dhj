@@ -18,7 +18,10 @@ export default class AbsentController {
         'project_absents.absent',
         'project_workers.role',
         'come_at',
-        'close_at'
+        'close_at',
+        'project_absents.note',
+        'latitude',
+        'longitude'
       )
       .join('employees', 'employees.id', '=', 'project_absents.employee_id')
       .joinRaw(
@@ -54,7 +57,7 @@ export default class AbsentController {
       .orderBy('parent_id', 'desc')
 
     return response.ok({
-      data: model.reduce((group: any[], absent: any) => {
+      data: model.reduce((group: any[], absent) => {
         const index = group.findIndex((v) => v && v.employeeId === absent.employee_id)
         if (index > -1) {
           group[index]['data'].push({
@@ -62,6 +65,9 @@ export default class AbsentController {
             absentAt: absent.absent_at,
             comeAt: absent.come_at,
             closeAt: absent.close_at,
+            note: absent.note,
+            latitude: absent.latitude,
+            longitude: absent.longitude,
             day: +moment(absent.absent_at).format('D'),
           })
         } else {
@@ -75,6 +81,9 @@ export default class AbsentController {
                 absentAt: absent.absent_at,
                 comeAt: absent.come_at,
                 closeAt: absent.close_at,
+                note: absent.note,
+                latitude: absent.latitude,
+                longitude: absent.longitude,
                 day: +moment(absent.absent_at).format('D'),
               },
             ],

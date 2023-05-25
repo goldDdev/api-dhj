@@ -106,6 +106,7 @@ Route.group(() => {
     }).prefix('progres')
 
     Route.group(() => {
+      Route.get('/all', 'CenterLocationController.all')
       Route.get('/', 'CenterLocationController.index')
       Route.put('/', 'CenterLocationController.update')
       Route.post('/', 'CenterLocationController.store')
@@ -114,6 +115,7 @@ Route.group(() => {
     }).prefix('center-location')
 
     Route.get('/tracking', 'TrackingController.index')
+    Route.get('/tracking/location', 'TrackingController.location')
     Route.get('/current', 'UsersController.current')
     Route.post('/logout', 'AuthController.logout')
 

@@ -13,6 +13,9 @@ export default class Tracking extends BaseModel {
   @column({ columnName: 'project_id', serializeAs: 'projectId' })
   public projectId: number
 
+  @column({ columnName: 'location_id', serializeAs: 'locationId' })
+  public locationId: number
+
   @column({ columnName: 'latitude', serializeAs: 'latitude' })
   public latitude: number
 

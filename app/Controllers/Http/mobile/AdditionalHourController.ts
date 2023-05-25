@@ -9,6 +9,7 @@ import Setting, { SettingCode } from 'App/Models/Setting'
 import codeError from 'Config/codeError'
 import moment from 'moment'
 import Logger from '@ioc:Adonis/Core/Logger'
+import { DateTime } from 'luxon'
 export default class AdditionalHourController {
   public async index({ auth, response, request }: HttpContextContract) {
     const query = await RequestOvertime.query()
@@ -180,7 +181,7 @@ export default class AdditionalHourController {
         return response.unprocessableEntity({ code: codeError.entity, type: 'exist' })
       }
 
-      if (absent) {
+      if (!absent) {
         return response.unprocessableEntity({
           code: codeError.absentNotExist,
           type: 'absentNotExist',
@@ -189,12 +190,26 @@ export default class AdditionalHourController {
 
       const employee = await Employee.findOrFail(payload.employeeId)
       const setting = await Setting.findByOrFail('code', SettingCode.OVERTIME_PRICE_PER_HOUR)
+      const { hour, minute } = await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.CLOSE_TIME)
+        .first()
+
+      const startOt = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
+      const closeAt = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
+        .plus({ minutes: payload.duration })
+        .toFormat('HH:mm')
+
       const model = await RequestOvertime.create({
         employeeId: payload.employeeId,
         projectId: payload.projectId,
         absentAt: now,
-        comeAt: payload.comeAt,
-        closeAt: payload.closeAt,
+        comeAt: payload.comeAt ? payload.comeAt : startOt.toFormat('HH:mm'),
+        closeAt: payload.closeAt ? payload.closeAt : closeAt,
         type: employee.role === EmployeeType.MANDOR ? 'TEAM' : 'PERSONAL',
         requestBy: auth.user?.employeeId,
         overtimePrice: +setting.value,
@@ -204,6 +219,7 @@ export default class AdditionalHourController {
       await model.refresh()
       return response.noContent()
     } catch (error) {
+      Logger.error(error)
       return response.unprocessableEntity(error)
     }
   }

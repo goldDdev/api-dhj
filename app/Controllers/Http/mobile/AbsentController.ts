@@ -153,7 +153,13 @@ export default class AbsentController {
             employeeId: value.employeeId,
             latitude: request.input('latitude', 0),
             longitude: request.input('longitude', 0),
-            comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
+            comeAt: request.input('absent')
+              ? request.input('absent') === 'A'
+                ? undefined
+                : lateDuration >= 0
+                ? startWork.toFormat('HH:mm')
+                : comeAt
+              : comeAt,
             lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
             latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
             absent: request.input('absent', 'P'),

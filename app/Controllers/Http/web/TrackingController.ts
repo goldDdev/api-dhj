@@ -19,8 +19,8 @@ export default class TrackingsController {
           employee_id,
           employees.name,
           employees.role,
-          tr.latitude,
-          tr.longitude,
+          tr.latitude::float,
+          tr.longitude::float,
           tr.created_at
         FROM
           (SELECT * FROM trackings WHERE DATE(created_at) = :date
@@ -53,8 +53,8 @@ export default class TrackingsController {
           employee_id,
           employees.name,
           employees.role,
-          tr.latitude,
-          tr.longitude,
+          tr.latitude::float,
+          tr.longitude::float,
           tr.created_at
         FROM
           (SELECT * FROM trackings WHERE DATE(created_at) = :date

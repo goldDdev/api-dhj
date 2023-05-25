@@ -160,8 +160,24 @@ export default class AbsentController {
                 ? startWork.toFormat('HH:mm')
                 : comeAt
               : comeAt,
-            lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
-            latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
+            lateDuration: request.input('absent')
+              ? request.input('absent') === 'A'
+                ? 0
+                : lateDuration >= 0
+                ? 0
+                : Math.abs(lateDuration)
+              : lateDuration >= 0
+              ? 0
+              : Math.abs(lateDuration),
+            latePrice: request.input('absent')
+              ? request.input('absent') === 'A'
+                ? 0
+                : lateDuration >= 0
+                ? 0
+                : Math.abs(lateDuration) * +latePrice
+              : lateDuration >= 0
+              ? 0
+              : Math.abs(lateDuration) * +latePrice,
             absent: request.input('absent', 'P'),
           })
         }
@@ -455,9 +471,31 @@ export default class AbsentController {
           employeeId: auth?.user?.employeeId,
           latitude: request.input('latitude', 0),
           longitude: request.input('longitude', 0),
-          comeAt: lateDuration >= 0 ? startWork.toFormat('HH:mm') : comeAt,
-          lateDuration: lateDuration >= 0 ? 0 : Math.abs(lateDuration),
-          latePrice: lateDuration >= 0 ? 0 : Math.abs(lateDuration) * +latePrice,
+          comeAt: request.input('absent')
+            ? request.input('absent') === 'A'
+              ? undefined
+              : lateDuration >= 0
+              ? startWork.toFormat('HH:mm')
+              : comeAt
+            : comeAt,
+          lateDuration: request.input('absent')
+            ? request.input('absent') === 'A'
+              ? 0
+              : lateDuration >= 0
+              ? 0
+              : Math.abs(lateDuration)
+            : lateDuration >= 0
+            ? 0
+            : Math.abs(lateDuration),
+          latePrice: request.input('absent')
+            ? request.input('absent') === 'A'
+              ? 0
+              : lateDuration >= 0
+              ? 0
+              : Math.abs(lateDuration) * +latePrice
+            : lateDuration >= 0
+            ? 0
+            : Math.abs(lateDuration) * +latePrice,
           absent: request.input('absent', 'P'),
           ...(location ? { note: location.name } : {}),
         })

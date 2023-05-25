@@ -153,7 +153,6 @@ export default class AdditionalHourController {
           employeeId: schema.number(),
           projectId: schema.number(),
           comeAt: schema.string.optional(),
-          closeAt: schema.string.optional(),
           duration: schema.number(),
           note: schema.string.optional(),
         }),
@@ -209,7 +208,9 @@ export default class AdditionalHourController {
         projectId: payload.projectId,
         absentAt: now,
         comeAt: payload.comeAt ? payload.comeAt : startOt.toFormat('HH:mm'),
-        closeAt: payload.closeAt ? payload.closeAt : closeAt,
+        closeAt: payload.comeAt
+          ? startOt.plus({ minutes: payload.duration }).toFormat('HH:mm')
+          : closeAt,
         type: employee.role === EmployeeType.MANDOR ? 'TEAM' : 'PERSONAL',
         requestBy: auth.user?.employeeId,
         overtimePrice: +setting.value,
@@ -233,7 +234,6 @@ export default class AdditionalHourController {
           projectId: schema.number(),
           absentAt: schema.string(),
           comeAt: schema.string.optional(),
-          closeAt: schema.string.optional(),
           type: schema.string.optional(),
           duration: schema.number(),
           note: schema.string.optional(),
@@ -247,12 +247,27 @@ export default class AdditionalHourController {
       }
 
       const setting = await Setting.findByOrFail('code', SettingCode.OVERTIME_PRICE_PER_HOUR)
+      const { hour, minute } = await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.CLOSE_TIME)
+        .first()
+
+      const startOt = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
+      const closeAt = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
+        .plus({ minutes: payload.duration })
+        .toFormat('HH:mm')
       await model.merge({
         employeeId: payload.employeeId,
         projectId: payload.projectId,
         absentAt: payload.absentAt,
-        comeAt: payload.comeAt,
-        closeAt: payload.closeAt,
+        comeAt: payload.comeAt ? payload.comeAt : startOt.toFormat('HH:mm'),
+        closeAt: payload.comeAt
+          ? startOt.plus({ minutes: payload.duration }).toFormat('HH:mm')
+          : closeAt,
         type: payload.type,
         requestBy: auth.user?.employeeId,
         overtimePrice: +setting.value,

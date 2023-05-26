@@ -223,6 +223,12 @@ export default class AdditionalHourController {
           ? startOt.plus({ minutes: payload.duration }).toFormat('HH:mm')
           : closeAt,
         type: auth.user?.employee.role === EmployeeType.MANDOR ? 'TEAM' : 'PERSONAL',
+        status:
+          auth.user?.employee.role === EmployeeType.MANDOR
+            ? RequestOTStatus.PENDING
+            : RequestOTStatus.CONFIRM,
+        actionBy:
+          auth.user?.employee.role === EmployeeType.MANDOR ? undefined : auth.user?.employeeId,
         requestBy: auth.user?.employeeId,
         overtimePrice: +setting.value,
         overtimeDuration: payload.duration,

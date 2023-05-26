@@ -169,7 +169,7 @@ export default class PayrolController {
       )
       .join('employees', 'employees.id', 'project_absents.employee_id')
       .joinRaw(
-        'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+        'LEFT JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
       )
       .joinRaw(
         "LEFT JOIN (SELECT employee_id, absent_at, total_earn, overtime_duration FROM additional_hours WHERE status = 'CONFIRM') AS ah ON ah.employee_id = project_absents.employee_id AND ah.absent_at = project_absents.absent_at"

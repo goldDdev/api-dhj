@@ -111,7 +111,7 @@ export default class AbsentController {
         .andWhereRaw('(project_workers.id = :id OR project_workers.parent_id = :id)', {
           id: work.id,
         })
-        .whereIn('id', inputWorkers.concat([work.id]))
+        .whereIn('id', inputWorkers.map((v) => v.id).concat([work.id]))
 
       const { hour, minute } = await Database.from('settings')
         .select(
@@ -139,6 +139,7 @@ export default class AbsentController {
       const lateDuration = Math.round(startWorkLate.diffNow('minutes').minutes)
 
       workers.forEach(async (value) => {
+        const ket = inputWorkers.find((v) => v.id === value.id)
         const findWork = await ProjectAbsent.query()
           .withScopes((scopes) => scopes.withWorker())
           .andWhere('project_workers.id', value.id)
@@ -153,15 +154,15 @@ export default class AbsentController {
             employeeId: value.employeeId,
             latitude: request.input('latitude', 0),
             longitude: request.input('longitude', 0),
-            comeAt: request.input('absent')
-              ? request.input('absent') === 'A'
+            comeAt: ket
+              ? ket.absent === 'A'
                 ? undefined
                 : lateDuration >= 0
                 ? startWork.toFormat('HH:mm')
                 : comeAt
               : comeAt,
-            lateDuration: request.input('absent')
-              ? request.input('absent') === 'A'
+            lateDuration: ket
+              ? ket.absent === 'A'
                 ? 0
                 : lateDuration >= 0
                 ? 0
@@ -169,8 +170,8 @@ export default class AbsentController {
               : lateDuration >= 0
               ? 0
               : Math.abs(lateDuration),
-            latePrice: request.input('absent')
-              ? request.input('absent') === 'A'
+            latePrice: ket
+              ? ket.absent === 'A'
                 ? 0
                 : lateDuration >= 0
                 ? 0
@@ -178,7 +179,7 @@ export default class AbsentController {
               : lateDuration >= 0
               ? 0
               : Math.abs(lateDuration) * +latePrice,
-            absent: request.input('absent', 'P'),
+            absent: ket ? ket.absent : 'P',
           })
         }
       })

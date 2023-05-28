@@ -349,8 +349,8 @@ export default class ProjectsController {
           'plan_progres',
           // 'plan_by',
           // 'start_date',
-          'end_date',
-          // 'progres',
+          // 'end_date',
+          'progres',
           'progres_at',
           'progres_by'
         )

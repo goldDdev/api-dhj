@@ -96,6 +96,14 @@ export default class TrackingController {
           })
           .first()
 
+        const project = await Project.query()
+          .whereRaw(`calculate_distance(latitude, longitude, :lat, :long, 'MTR') <= :radius`, {
+            radius: +(value || 0),
+            lat: latitude,
+            long: longitude,
+          })
+          .first()
+
         if (value) {
           const project = await Project.query()
             .whereRaw(
@@ -131,8 +139,9 @@ export default class TrackingController {
 
         await Tracking.create({
           locationId: location?.id,
-          latitude,
+          projectId: project?.id,
           longitude,
+          latitude,
           employeeId: auth.user?.employeeId,
           createdAt: DateTime.local({ zone: 'UTC+7' }),
         })

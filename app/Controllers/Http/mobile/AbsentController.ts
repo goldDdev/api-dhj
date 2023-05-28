@@ -7,6 +7,8 @@ import Setting, { SettingCode } from 'App/Models/Setting'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import { DateTime } from 'luxon'
 import CenterLocation from 'App/Models/CenterLocation'
+import Tracking from 'App/Models/Tracking'
+import Project from 'App/Models/Project'
 
 export default class AbsentController {
   public async index({ auth, response, month, year, request }: HttpContextContract) {
@@ -95,6 +97,34 @@ export default class AbsentController {
   public async addCome({ auth, request, now, response }: HttpContextContract) {
     try {
       const inputWorkers = request.input('workers', [])
+      const { value: RADIUS } = await Setting.query()
+        .where('code', SettingCode.RADIUS)
+        .firstOrFail()
+
+      const { value: latePrice } = await Database.from('settings')
+        .where('code', SettingCode.LATETIME_PRICE_PER_MINUTE)
+        .first()
+
+      const { value: lateTreshold } = await Database.from('settings')
+        .where('code', SettingCode.LATE_TRESHOLD)
+        .first()
+
+      const location = await CenterLocation.query()
+        .whereRaw(`calculate_distance(latitude, longitude, :lat, :long, 'MTR') <= :radius`, {
+          radius: +(RADIUS || 0),
+          lat: request.input('latitude', 0),
+          long: request.input('longitude', 0),
+        })
+        .first()
+
+      const project = await Project.query()
+        .whereRaw(`calculate_distance(latitude, longitude, :lat, :long, 'MTR') <= :radius`, {
+          radius: +(RADIUS || 0),
+          lat: request.input('latitude', 0),
+          long: request.input('longitude', 0),
+        })
+        .first()
+
       const work = await ProjectWorker.query()
         .where({
           project_id: request.input('projectId'),
@@ -120,14 +150,6 @@ export default class AbsentController {
           )
         )
         .where('code', SettingCode.START_TIME)
-        .first()
-
-      const { value: latePrice } = await Database.from('settings')
-        .where('code', SettingCode.LATETIME_PRICE_PER_MINUTE)
-        .first()
-
-      const { value: lateTreshold } = await Database.from('settings')
-        .where('code', SettingCode.LATE_TRESHOLD)
         .first()
 
       const comeAt = DateTime.local({ zone: 'UTC+7' }).toFormat('HH:mm')
@@ -182,6 +204,15 @@ export default class AbsentController {
             absent: ket ? ket.absent : 'P',
           })
         }
+
+        await Tracking.create({
+          locationId: location?.id,
+          projectId: project?.id,
+          latitude: request.input('latitude', 0),
+          longitude: request.input('longitude', 0),
+          employeeId: auth.user?.employeeId,
+          createdAt: DateTime.local({ zone: 'UTC+7' }),
+        })
       })
       return response.noContent()
     } catch (error) {
@@ -433,6 +464,14 @@ export default class AbsentController {
         })
         .first()
 
+      const project = await Project.query()
+        .whereRaw(`calculate_distance(latitude, longitude, :lat, :long, 'MTR') <= :radius`, {
+          radius: +(radius?.value || 0),
+          lat: request.input('latitude', 0),
+          long: request.input('longitude', 0),
+        })
+        .first()
+
       const { hour, minute } = await Database.from('settings')
         .select(
           Database.raw(
@@ -501,6 +540,15 @@ export default class AbsentController {
           ...(location ? { note: location.name } : {}),
         })
       }
+
+      await Tracking.create({
+        locationId: location?.id,
+        projectId: project?.id,
+        latitude: request.input('latitude', 0),
+        longitude: request.input('longitude', 0),
+        employeeId: auth.user?.employeeId,
+        createdAt: DateTime.local({ zone: 'UTC+7' }),
+      })
       return response.noContent()
     } catch (error) {
       Logger.info(error)

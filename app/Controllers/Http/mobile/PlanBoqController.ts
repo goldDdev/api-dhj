@@ -92,6 +92,10 @@ export default class PlanBoqController {
         }),
       })
 
+      const check = await PlanBoq.query().first()
+      if (check) {
+      }
+
       await PlanBoq.create({
         employeeId: auth.user!.employeeId,
         projectId: payload.projectId,

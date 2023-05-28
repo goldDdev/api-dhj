@@ -104,9 +104,9 @@ export default class ProjectBoq extends BaseModel {
   })
 
   public static withLastProgres = scope((query) => {
-    query.joinRaw(
-      "LEFT OUTER JOIN (SELECT DISTINCT ON (project_boq_id) project_boq_id, TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at, progres, employees.name AS progres_by FROM project_progres LEFT JOIN employees ON employees.id = project_progres.employee_id ORDER BY project_boq_id, progres_at DESC) AS progress ON progress.project_boq_id = project_boqs.id"
-    )
+    // query.joinRaw(
+    //   "LEFT OUTER JOIN (SELECT DISTINCT ON (project_boq_id) project_boq_id, TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at, progres, employees.name AS progres_by FROM project_progres LEFT JOIN employees ON employees.id = project_progres.employee_id ORDER BY project_boq_id, progres_at DESC) AS progress ON progress.project_boq_id = project_boqs.id"
+    // )
   })
 
   public static withLastPlan = scope((query, now: string) => {

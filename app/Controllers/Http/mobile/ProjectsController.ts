@@ -346,17 +346,17 @@ export default class ProjectsController {
           'project_boqs.updated_at',
           Database.raw('COALESCE(progres.total_progres, 0)::int AS total_progres'),
           Database.raw('COALESCE(pending.total_pending, 0)::int AS total_pending'),
-          // 'plan_progres',
-          // 'plan_by',
-          // 'start_date',
-          // 'end_date',
+          'plan_progres',
+          'plan_by',
+          'start_date',
+          'end_date',
           'progres',
           'progres_at',
           'progres_by'
         )
         .withScopes((scope) => {
           scope.withLastProgres()
-          // scope.withLastPlan(now)
+          scope.withLastPlan(now)
           scope.withTotalProgress()
           scope.withTotalPending()
         })

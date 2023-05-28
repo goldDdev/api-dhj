@@ -104,23 +104,32 @@ export default class ProjectBoq extends BaseModel {
   })
 
   public static withLastProgres = scope((query) => {
-    query.joinRaw(
-      "LEFT OUTER JOIN (SELECT DISTINCT ON (project_boq_id) project_boq_id, TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at, progres, employees.name AS progres_by FROM project_progres LEFT JOIN employees ON employees.id = project_progres.employee_id ORDER BY project_boq_id, progres_at DESC) AS progress ON progress.project_boq_id = project_boqs.id"
-    )
+    query.joinRaw(`
+    LEFT OUTER JOIN (
+        SELECT 
+          DISTINCT ON (project_boq_id) project_boq_id, 
+          TO_CHAR(progres_at, 'YYYY-MM-DD') AS progres_at, 
+          progres, 
+          employees.name AS progres_by 
+        FROM project_progres 
+        LEFT JOIN employees ON employees.id = project_progres.employee_id 
+        ORDER BY project_boq_id, progres_at DESC
+        ) AS progress ON progress.project_boq_id = project_boqs.id`)
   })
 
   public static withLastPlan = scope((query, now: string) => {
     query.joinRaw(
       `LEFT OUTER JOIN (
         SELECT 
-            project_boq_id,
+            DISTINCT ON (project_boq_id) project_boq_id
             TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,  
             TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date, 
             progress as plan_progres, employees.name AS plan_by,
         FROM plan_boqs 
-        INNER JOIN employees ON employees.id = plan_boqs.employee_id 
+        LEFT JOIN employees ON employees.id = plan_boqs.employee_id 
         WHERE 
           :date >= start_date AND :date <= end_date
+        ORDER BY project_boq_id, start_date DESC
         ) AS planprogress ON planprogress.project_boq_id = project_boqs.id`,
       { date: now }
     )

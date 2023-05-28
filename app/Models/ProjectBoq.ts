@@ -121,10 +121,10 @@ export default class ProjectBoq extends BaseModel {
     query.joinRaw(
       `LEFT OUTER JOIN (
         SELECT 
-            DISTINCT ON (project_boq_id) project_boq_id
+            DISTINCT ON (project_boq_id) project_boq_id,
             TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,  
             TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date, 
-            progress as plan_progres, employees.name AS plan_by,
+            progress as plan_progres, employees.name AS plan_by
         FROM plan_boqs 
         LEFT JOIN employees ON employees.id = plan_boqs.employee_id 
         WHERE 

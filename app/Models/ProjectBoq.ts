@@ -111,7 +111,17 @@ export default class ProjectBoq extends BaseModel {
 
   public static withLastPlan = scope((query, now: string) => {
     query.joinRaw(
-      "LEFT OUTER JOIN (SELECT DISTINCT ON (project_boq_id) project_boq_id, TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,  TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date, progress as plan_progres, employees.name AS plan_by, project_boq_id FROM plan_boqs INNER JOIN employees ON employees.id = plan_boqs.employee_id WHERE :date >= start_date AND :date <= end_date) AS planprogress ON planprogress.project_boq_id = project_boqs.id",
+      `LEFT OUTER JOIN (
+        SELECT 
+            project_boq_id,
+            TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,  
+            TO_CHAR(end_date, 'YYYY-MM-DD') AS end_date, 
+            progress as plan_progres, employees.name AS plan_by,
+        FROM plan_boqs 
+        INNER JOIN employees ON employees.id = plan_boqs.employee_id 
+        WHERE 
+          :date >= start_date AND :date <= end_date
+        ) AS planprogress ON planprogress.project_boq_id = project_boqs.id`,
       { date: now }
     )
   })

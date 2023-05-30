@@ -15,6 +15,7 @@ Route.group(() => {
       Route.get('/:id/report', 'EmployeesController.reportAbsent')
       Route.post('/validation', 'EmployeesController.validation')
       Route.put('/', 'EmployeesController.update')
+      Route.put('/profile', 'EmployeesController.profile')
       Route.put('/status', 'EmployeesController.status')
       Route.put('/optional', 'EmployeesController.updateOptional')
       Route.delete('/:id', 'EmployeesController.destroy')

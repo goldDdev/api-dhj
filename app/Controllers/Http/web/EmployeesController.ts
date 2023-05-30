@@ -228,6 +228,56 @@ export default class EmployeesController {
     }
   }
 
+  public async profile({ request, response }: HttpContextContract) {
+    const trx = await Database.transaction()
+    try {
+      const payload = await request.validate({
+        schema: schema.create({
+          id: schema.number(),
+          name: schema.string([rules.minLength(3)]),
+          phoneNumber: schema.string([
+            rules.minLength(10),
+            rules.unique({
+              table: 'employees',
+              column: 'phone_number',
+              whereNot: {
+                id: request.input('id'),
+              },
+            }),
+          ]),
+
+          role: schema.string(),
+          password: schema.string.optional(),
+          email: schema.string.optional([
+            rules.unique({
+              table: 'users',
+              column: 'email',
+              whereNot: {
+                email: null,
+                employee_id: request.input('id'),
+              },
+            }),
+          ]),
+        }),
+      })
+
+      const { email, password, ...emp } = payload
+      const model = await Employee.find(payload.id, { client: trx })
+      if (model) {
+        await model.load('user')
+        await model.merge(emp).save()
+        if (email) {
+          await model.user.merge(password ? { email, password } : { email }).save()
+        }
+        await trx.commit()
+        return response.noContent()
+      }
+    } catch (error) {
+      await trx.rollback()
+      return response.unprocessableEntity({ error })
+    }
+  }
+
   public async updateOptional({ request, response }: HttpContextContract) {
     try {
       const payload = await request.validate({

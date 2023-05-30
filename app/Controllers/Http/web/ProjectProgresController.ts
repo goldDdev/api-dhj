@@ -22,7 +22,6 @@ export default class ProjectProgresController {
         'employees.name AS submited_name'
       )
       .join('project_boqs', 'project_boqs.id', 'project_progres.project_boq_id')
-      .join('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
       .join('users', 'users.id', 'project_progres.submited_by')
       .join('employees', 'employees.id', 'users.employee_id')
       .where('project_progres.project_id', request.param('id'))
@@ -41,7 +40,6 @@ export default class ProjectProgresController {
   public async all({ year, month, response, request }: HttpContextContract) {
     const boq = await ProjectBoq.query()
       .select('project_boqs.name', 'project_boqs.id', 'project_boqs.type_unit')
-      .innerJoin('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
       .where('project_id', request.param('id'))
 
     const query = await Database.query()
@@ -59,7 +57,6 @@ export default class ProjectProgresController {
         'aprove.name AS aprove_name'
       )
       .join('project_boqs', 'project_boqs.id', 'project_progres.project_boq_id')
-      .join('bill_of_quantities', 'bill_of_quantities.id', 'project_boqs.boq_id')
       .joinRaw(
         'LEFT JOIN (SELECT name, users.id FROM users INNER JOIN employees ON employees.id = users.employee_id) AS submit ON submit.id = project_progres.submited_by'
       )

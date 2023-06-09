@@ -18,6 +18,7 @@ export default class AdditionalHourController {
         'request_overtimes.id',
         'request_overtimes.status',
         'projects.name AS project_name',
+        'employees.name AS request_name',
         Database.raw(
           `(
             CASE
@@ -44,6 +45,7 @@ export default class AdditionalHourController {
         )
       )
       .join('projects', 'projects.id', '=', 'request_overtimes.project_id')
+      .join('employees', 'employees.id', 'request_overtimes.request_by')
       .whereRaw('EXTRACT(MONTH FROM absent_at) = :month ', {
         month: request.input('month', moment().month() + 1),
       })
@@ -375,7 +377,6 @@ export default class AdditionalHourController {
               'totalEarn',
               'overtimePrice',
               'actionBy',
-              'requestBy',
               'confirmBy',
               'created_at',
               'updated_at',

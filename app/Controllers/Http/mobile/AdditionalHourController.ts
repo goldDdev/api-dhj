@@ -81,12 +81,10 @@ export default class AdditionalHourController {
         fields: {
           omit: [
             'totalEarn',
-            'employeeId',
             'overtimePrice',
             'actionBy',
             'requestBy',
             'confirmBy',
-            'projectId',
             'created_at',
             'updated_at',
           ],
@@ -363,6 +361,9 @@ export default class AdditionalHourController {
         .if(request.input('approval'), (query) => {
           query.andWhere('request_overtimes.confirm_status', request.input('approval'))
         })
+        .if(request.input('projectId'), (query) => {
+          query.andWhere('project_id', '=', request.input('projectId'))
+        })
         .paginate(request.input('page'), request.input('perPage', 15))
 
       return response.json(
@@ -370,12 +371,10 @@ export default class AdditionalHourController {
           fields: {
             omit: [
               'totalEarn',
-              'employeeId',
               'overtimePrice',
               'actionBy',
               'requestBy',
               'confirmBy',
-              'projectId',
               'created_at',
               'updated_at',
             ],

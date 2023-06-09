@@ -8,4 +8,5 @@ export default {
   errors: 50,
   absentNotExist: 51,
   existDaily: 52,
+  processed: 53,
 }

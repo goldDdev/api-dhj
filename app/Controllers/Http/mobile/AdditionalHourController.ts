@@ -402,7 +402,7 @@ export default class AdditionalHourController {
       const model = await RequestOvertime.findOrFail(payload.id)
 
       if (model.status !== RequestOTStatus.PENDING) {
-        return response.notFound({ code: codeError.notFound, type: 'notFound' })
+        return response.notFound({ code: codeError.processed, type: 'processed' })
       }
 
       await model

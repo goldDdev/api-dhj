@@ -60,19 +60,19 @@ export default class AdditionalHourController {
         }
       )
       .if(request.input('projectId'), (query) => {
-        query.andHaving('project_id', '=', request.input('projectId'))
+        query.andWhere('project_id', '=', request.input('projectId'))
       })
       .if(request.input('status'), (query) => {
-        query.andHaving('request_overtimes.status', '=', request.input('status'))
+        query.andWhere('request_overtimes.status', '=', request.input('status'))
       })
       .if(request.input('absentAt'), (query) => {
-        query.andHaving('absent_at', '=', request.input('absentAt'))
+        query.andWhere('absent_at', '=', request.input('absentAt'))
       })
       .if(request.input('startDate'), (query) => {
-        query.andHaving('absent_at', '>=', request.input('startDate'))
+        query.andWhere('absent_at', '>=', request.input('startDate'))
       })
       .if(request.input('endDate'), (query) => {
-        query.andHaving('absent_at', '<=', request.input('endDate'))
+        query.andWhere('absent_at', '<=', request.input('endDate'))
       })
       .paginate(request.input('page'), request.input('perPage', 15))
 

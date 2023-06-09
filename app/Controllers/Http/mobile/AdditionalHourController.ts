@@ -411,8 +411,7 @@ export default class AdditionalHourController {
         })
         .save()
 
-      await model.refresh()
-      return response.ok(model.serialize())
+      return response.noContent()
     } catch (error) {
       Logger.warn(error)
 

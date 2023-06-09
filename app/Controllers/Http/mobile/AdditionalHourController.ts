@@ -233,6 +233,7 @@ export default class AdditionalHourController {
         overtimePrice: +setting.value,
         overtimeDuration: payload.duration,
         totalEarn: (payload.duration / 60) * +setting.value,
+        note: payload.note,
       })
       await model.refresh()
       return response.noContent()
@@ -285,6 +286,7 @@ export default class AdditionalHourController {
         overtimePrice: +setting.value,
         overtimeDuration: payload.duration,
         totalEarn: (payload.duration / 60) * +setting.value,
+        note: payload.note,
       })
       await model.refresh()
       return response.ok(model.serialize())

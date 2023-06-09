@@ -56,7 +56,9 @@ export default class AdditionalHourController {
           query.andWhere('employee_id', auth.user!.employeeId)
         },
         (query) => {
-          query.andWhere('request_by', auth.user!.employeeId)
+          if (request.input('employeeId')) {
+            query.andWhere('request_by', auth.user!.employeeId)
+          }
         }
       )
       .if(request.input('projectId'), (query) => {

@@ -6,6 +6,7 @@ import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import moment from 'moment'
 import Logger from '@ioc:Adonis/Core/Logger'
+
 export default class ProjectsController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
@@ -361,6 +362,21 @@ export default class ProjectsController {
       })
 
       return response.noContent()
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async badge({ request, response }: HttpContextContract) {
+    try {
+      const overtime = await await Database.from('request_overtimes')
+        .where({ project_id: request.param('id') })
+        .andWhereRaw("(status = 'PENDING' OR confirm_status = 'PENDING')")
+        .count('* as total')
+
+      return response.json({
+        overtime: +overtime[0].total,
+      })
     } catch (error) {
       return response.unprocessableEntity({ error })
     }

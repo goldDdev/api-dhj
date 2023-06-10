@@ -81,6 +81,7 @@ Route.group(() => {
       Route.get('/:id/kom', 'ProjectKomController.view')
       Route.get('/:id/boq', 'ProjectBoqController.view')
       Route.get('/:id/search', 'ProjectBoqController.search')
+      Route.get('/:id/badge', 'ProjectsController.badge')
       Route.delete('/:id', 'ProjectsController.destroy')
       Route.delete('/:id/worker', 'ProjectsController.removeWorker')
       Route.delete('/:id/kom', 'ProjectKomController.destroy')

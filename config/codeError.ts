@@ -9,4 +9,5 @@ export default {
   absentNotExist: 51,
   existDaily: 52,
   processed: 53,
+  hasRequestOvertime: 54,
 }

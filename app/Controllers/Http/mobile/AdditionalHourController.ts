@@ -191,7 +191,10 @@ export default class AdditionalHourController {
         .first()
 
       if (find) {
-        return response.unprocessableEntity({ code: codeError.entity, type: 'exist' })
+        return response.unprocessableEntity({
+          code: codeError.hasRequestOvertime,
+          type: 'hasRequestOvertime',
+        })
       }
 
       if (!absent) {

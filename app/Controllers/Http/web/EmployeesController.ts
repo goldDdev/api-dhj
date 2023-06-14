@@ -18,6 +18,7 @@ export default class EmployeesController {
           'card_id',
           'inactive_at',
           'users.email',
+          'type',
         ])
         .leftJoin('users', 'users.employee_id', 'employees.id')
         .where('role', 'NOT IN', ['ADMIN', 'OWNER', 'PM', 'PCC', 'QCC', 'SUP'])
@@ -140,6 +141,7 @@ export default class EmployeesController {
           hourlyWages: schema.number.optional(),
           salary: schema.number.optional(),
           password: schema.string.optional(),
+          type: schema.string.optional(),
           email: schema.string.optional([
             rules.unique({
               table: 'users',
@@ -195,6 +197,7 @@ export default class EmployeesController {
           hourlyWages: schema.number.optional(),
           salary: schema.number.optional(),
           password: schema.string.optional(),
+          type: schema.string.optional(),
           email: schema.string.optional([
             rules.unique({
               table: 'users',

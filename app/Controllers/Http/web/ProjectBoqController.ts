@@ -28,7 +28,8 @@ export default class ProjectBoqController {
         'progres',
         'progres_at',
         'progres_by',
-        'total_price'
+        'total_price',
+        'type'
       )
       .withScopes((scope) => {
         scope.withLastProgres()
@@ -102,6 +103,7 @@ export default class ProjectBoqController {
           projectId: schema.number(),
           unit: schema.number(),
           price: schema.number.optional(),
+          type: schema.string.optional(),
           totalPrice: schema.number.optional(),
         }),
       })
@@ -150,6 +152,7 @@ export default class ProjectBoqController {
           totalPrice: schema.number.optional(),
           additionalUnit: schema.number.optional(),
           additionalPrice: schema.number.optional(),
+          type: schema.string.optional(),
         }),
       })
 

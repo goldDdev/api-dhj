@@ -53,6 +53,9 @@ export default class ProjectBoq extends BaseModel {
   })
   public additionalPrice: number
 
+  @column()
+  public type: string
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 

@@ -352,7 +352,8 @@ export default class ProjectsController {
           'end_date',
           'progres',
           'progres_at',
-          'progres_by'
+          'progres_by',
+          'type'
         )
         .withScopes((scope) => {
           scope.withLastProgres()

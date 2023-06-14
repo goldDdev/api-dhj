@@ -28,6 +28,12 @@ export enum EmployeeType {
   WORKER = 'WORKER',
 }
 
+export enum MandotType {
+  PIPING = 'PIPING',
+  CIVIL = 'CIVIL',
+  ELECTRICAL = 'ELECTRICAL',
+}
+
 export default class Employee extends BaseModel {
   public static table = 'employees'
 
@@ -51,6 +57,9 @@ export default class Employee extends BaseModel {
     serializeAs: 'inactiveNote',
   })
   public inactiveNote?: string
+
+  @column()
+  public type: string
 
   @column({ columnName: 'hourly_wages', serializeAs: 'hourlyWages', consume: (value) => +value })
   public hourlyWages?: number

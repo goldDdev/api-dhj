@@ -12,6 +12,13 @@ export enum ProjectStatus {
   PENDING = 'PENDING',
   DONE = 'DONE',
   REVIEW = 'REVIEW',
+  WAP = 'WAP',
+  SPK = 'SPK',
+  KOM = 'KOM',
+  SITE_KOM = 'SITE_KOM',
+  RFD = 'RFD',
+  POP = 'POP',
+  CLOSE = 'CLOSE',
 }
 
 export default class Project extends BaseModel {

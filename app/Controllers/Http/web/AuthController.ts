@@ -15,4 +15,11 @@ export default class AuthController {
       return response.badRequest({ error: 'Invalid credentials' })
     }
   }
+
+  public async logout({ auth, response }: HttpContextContract) {
+    await auth.use('api').revoke()
+    return response.ok({
+      revoked: true,
+    })
+  }
 }

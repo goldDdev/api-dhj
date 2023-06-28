@@ -6,12 +6,29 @@ import ProjectAbsent, { AbsentType } from 'App/Models/ProjectAbsent'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
 import moment from 'moment'
 import Logger from '@ioc:Adonis/Core/Logger'
+
 export default class ProjectsController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
       await Project.query()
-        .select(['id', 'name', 'companyName', 'status', 'duration', 'finishAt', 'startAt'])
+        .select([
+          'id',
+          'name',
+          'companyName',
+          'status',
+          'duration',
+          'location',
+          'finishAt',
+          'startAt',
+          'price',
+        ])
         .orderBy('id', 'desc')
+        .if(request.input('name'), (query) =>
+          query.andWhereILike('name', `%${request.input('name')}%`)
+        )
+        .if(request.input('status'), (query) => query.andWhere('status', request.input('status')))
+
+        .orderBy(request.input('orderBy', 'id'), request.input('order', 'desc'))
         .paginate(request.input('page', 1), request.input('perPage', 15))
     )
   }
@@ -23,7 +40,6 @@ export default class ProjectsController {
         data: model.serialize(),
       })
     } catch (error) {
-      console.log(error)
       return response.notFound({ error })
     }
   }
@@ -40,12 +56,15 @@ export default class ProjectsController {
               column: 'no_spk',
             }),
           ]),
+          price: schema.number.optional(),
           latitude: schema.number.optional(),
           longitude: schema.number.optional(),
           status: schema.enum.optional(Object.keys(ProjectStatus)),
           contact: schema.string.optional(),
-          startAt: schema.date.optional({}, [rules.afterOrEqual('today')]),
-          finishAt: schema.date.optional({}, [rules.afterOrEqual('today')]),
+          startAt: schema.date.optional({}, []),
+          targetDate: schema.string.optional(),
+          finishAt: schema.date.optional({}, []),
+          duration: schema.number.optional(),
           note: schema.string.optional(),
           location: schema.string.optional(),
         }),
@@ -61,7 +80,7 @@ export default class ProjectsController {
       await model.refresh()
 
       return response.created({
-        data: request.all(),
+        data: model.serialize(),
       })
     } catch (error) {
       return response.unprocessableEntity({ error })
@@ -83,22 +102,25 @@ export default class ProjectsController {
               },
             }),
           ]),
+          price: schema.number.optional(),
           latitude: schema.number.optional(),
           longitude: schema.number.optional(),
+          duration: schema.number.optional(),
           status: schema.enum.optional(Object.keys(ProjectStatus)),
           contact: schema.string.optional(),
           startAt: schema.date.optional({}),
           finishAt: schema.date.optional({}),
+          targetDate: schema.string.optional(),
           note: schema.string.optional(),
           location: schema.string.optional(),
         }),
       })
 
-      if (!!payload.startAt && !!payload.finishAt) {
-        Object.assign(payload, {
-          duration: moment(request.input('finishAt'), true).diff(request.input('startAt'), 'day'),
-        })
-      }
+      // if (!!payload.startAt && !!payload.finishAt) {
+      //   Object.assign(payload, {
+      //     duration: moment(request.input('finishAt'), true).diff(request.input('startAt'), 'day'),
+      //   })
+      // }
       const model = await Project.find(request.input('id'))
       if (!model) {
         return response.notFound({
@@ -148,17 +170,7 @@ export default class ProjectsController {
         'employees.card_id as cardID',
         'employees.phone_number as phoneNumber'
       )
-      .preload('members', (query) => {
-        query
-          .select(
-            '*',
-            'project_workers.id',
-            'project_workers.role',
-            'employees.card_id as cardID',
-            'employees.phone_number as phoneNumber'
-          )
-          .join('employees', 'employees.id', '=', 'project_workers.employee_id')
-      })
+      .preload('members')
       .join('employees', 'employees.id', '=', 'project_workers.employee_id')
       .whereNull('parent_id')
       .where('project_id', request.param('id'))
@@ -215,32 +227,38 @@ export default class ProjectsController {
     }
   }
 
-  public async absent({ response, request }: HttpContextContract) {
+  public async absent({ response, month, year, request }: HttpContextContract) {
     const query = await Database.from('project_absents')
       .select(
-        'project_workers.parent_id as parentId',
-        'emp.name',
-        'emp.role',
-        Database.raw('TO_CHAR(absent_at, \'YYYY-MM-DD\') as "absentAt"'),
+        'project_workers.id as parentId',
+        'employees.name',
+        'employees.role',
+        Database.raw('TO_CHAR(project_absents.absent_at, \'YYYY-MM-DD\') as "absentAt"'),
         Database.raw('count(*)::int as total'),
-        Database.raw("sum(case when absent = 'P' then 1 else 0 end)::int as present"),
-        Database.raw("sum(case when absent = 'A' then 1 else 0 end)::int as absent"),
-        Database.raw('sum(case when absent = NULL then 1 else 0 end)::int as "noAbsent"')
+        Database.raw("sum(case when pwa.absent = 'P' then 1 else 0 end)::int as present"),
+        Database.raw("sum(case when pwa.absent = 'A' then 1 else 0 end)::int as absent"),
+        Database.raw('sum(case when pwa.absent = NULL then 1 else 0 end)::int as "noAbsent"')
       )
       .joinRaw(
         'INNER JOIN project_workers ON project_absents.project_id = project_workers.project_id AND project_absents.employee_id = project_workers.employee_id'
       )
+      .join('employees', 'employees.id', 'project_absents.employee_id')
       .joinRaw(
-        'LEFT JOIN (SELECT name, parent.role, parent.id FROM employees INNER JOIN project_workers AS parent ON employees.id = parent.employee_id) AS emp ON emp.id = project_workers.parent_id'
+        'LEFT OUTER JOIN (SELECT *, pw.id as pwid FROM project_absents pa INNER JOIN project_workers pw ON pa.project_id = pw.project_id AND pa.employee_id = pw.employee_id) AS pwa ON pwa.parent_id = project_workers.id OR pwa.pwid = project_workers.id'
       )
       .where('project_absents.project_id', request.param('id', 0))
-      .orderBy(request.input('orderBy', 'absent_at'), request.input('order', 'asc'))
-      .groupBy('absent_at', 'project_workers.parent_id', 'emp.name', 'emp.role')
-      .andHavingRaw('EXTRACT(MONTH FROM absent_at) = :month ', {
-        month: request.input('month', moment().month() + 1),
+      .andWhereNull('project_workers.parent_id')
+      .groupBy(
+        'project_absents.absent_at',
+        'project_workers.id',
+        'employees.name',
+        'employees.role'
+      )
+      .andHavingRaw('EXTRACT(MONTH FROM project_absents.absent_at) = :month ', {
+        month: request.input('month', month),
       })
-      .andHavingRaw('EXTRACT(YEAR FROM absent_at) = :year ', {
-        year: request.input('year', moment().year()),
+      .andHavingRaw('EXTRACT(YEAR FROM project_absents.absent_at) = :year ', {
+        year: request.input('year', year),
       })
 
     return response.ok({
@@ -248,7 +266,7 @@ export default class ProjectsController {
     })
   }
 
-  public async viewAbsent({ request, response }: HttpContextContract) {
+  public async viewAbsent({ request, now, response }: HttpContextContract) {
     try {
       const model = await ProjectAbsent.query()
         .select(
@@ -259,16 +277,20 @@ export default class ProjectsController {
           'employees.card_id as cardID',
           'employees.phone_number as phoneNumber',
           'project_workers.role',
+          'parent_id',
+          'project_workers.id AS worker_id',
           'project_absents.project_id'
         )
-        .join('employees', 'employees.id', '=', 'project_absents.employee_id')
-        .joinRaw(
-          'INNER JOIN project_workers ON employees.id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
-        )
-        .preload('replaceEmployee')
+        .withScopes((scopes) => {
+          scopes.withEmployee()
+          scopes.withWorker()
+        })
         .where('project_absents.project_id', request.param('id', 0))
-        .andWhere('project_workers.parent_id', request.param('parent', 0))
-        .andWhere('absent_at', request.input('date', moment().format('yyyy-MM-DD')))
+        .andWhere('absent_at', request.input('date', now))
+        .andWhereRaw('(project_workers.parent_id = :parent OR project_workers.id = :parent)', {
+          parent: request.param('parent', 0),
+        })
+        .orderBy('parent_id', 'desc')
 
       const summary = model.reduce(
         (p, n) => ({
@@ -282,8 +304,8 @@ export default class ProjectsController {
 
       return response.ok({
         data: {
-          absentAt: request.input('date', moment().format('yyyy-MM-DD')),
-          projectId: +request.param('project', 0),
+          absentAt: request.input('date', now),
+          projectId: +request.param('id', 0),
           parentId: +request.param('parent', 0),
           summary,
           members: model.map((v) =>
@@ -297,6 +319,66 @@ export default class ProjectsController {
       })
     } catch (err) {
       Logger.warn(err)
+    }
+  }
+
+  public async confirmProgres({ request, response }: HttpContextContract) {
+    console.log(request, response)
+    // TODO : level koordinator bisa aprove/reject/edit inputan progress project boq dari bawahan nya
+  }
+
+  public async destroy({ request, response }: HttpContextContract) {
+    try {
+      const model = await Project.findOrFail(request.param('id'))
+      await model.delete()
+      return response.noContent()
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async validation({ request, response }: HttpContextContract) {
+    try {
+      await request.validate({
+        schema: schema.create({
+          name: schema.string(),
+          companyName: schema.string(),
+          noSpk: schema.string([
+            rules.unique({
+              table: 'projects',
+              column: 'no_spk',
+              whereNot: {
+                id: request.input('id', 0),
+              },
+            }),
+          ]),
+          latitude: schema.number.optional(),
+          longitude: schema.number.optional(),
+          status: schema.enum.optional(Object.keys(ProjectStatus)),
+          contact: schema.string.optional(),
+          note: schema.string.optional(),
+          location: schema.string.optional(),
+        }),
+      })
+
+      return response.noContent()
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async badge({ request, response }: HttpContextContract) {
+    try {
+      const overtime = await await Database.from('request_overtimes')
+        .where({ project_id: request.param('id') })
+        .andWhereRaw("(status = 'PENDING' OR confirm_status = 'PENDING')")
+        .count('* as total')
+
+      return response.json({
+        overtime: +overtime[0].total,
+      })
+    } catch (error) {
+      return response.unprocessableEntity({ error })
     }
   }
 }

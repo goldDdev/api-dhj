@@ -10,7 +10,7 @@ export default class Boq extends BaseModel {
   @column({ columnName: 'name' })
   public name: string
 
-  @column({ columnName: 'typeUnit' })
+  @column({ columnName: 'typeUnit', serializeAs: 'typeUnit' })
   public typeUnit: string
 
   @column.dateTime({ autoCreate: true })

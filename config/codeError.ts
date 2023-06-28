@@ -6,4 +6,8 @@ export default {
   notFound: 44,
   entity: 45,
   errors: 50,
+  absentNotExist: 51,
+  existDaily: 52,
+  processed: 53,
+  hasRequestOvertime: 54,
 }

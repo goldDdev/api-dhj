@@ -1,7 +1,9 @@
 import { DateTime } from 'luxon'
-import { BaseModel, HasMany, column, computed, hasMany } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, HasMany, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
 import ProjectWorker from './ProjectWorker'
 import ProjectAbsent from './ProjectAbsent'
+import ProjectBoq from './ProjectBoq'
+import moment from 'moment'
 
 export enum ProjectStatus {
   DRAFT = 'DRAFT',
@@ -10,6 +12,13 @@ export enum ProjectStatus {
   PENDING = 'PENDING',
   DONE = 'DONE',
   REVIEW = 'REVIEW',
+  WAP = 'WAP',
+  SPK = 'SPK',
+  KOM = 'KOM',
+  SITE_KOM = 'SITE_KOM',
+  RFD = 'RFD',
+  POP = 'POP',
+  CLOSE = 'CLOSE',
 }
 
 export default class Project extends BaseModel {
@@ -36,19 +45,34 @@ export default class Project extends BaseModel {
   @column.date({ columnName: 'finish_at', serializeAs: 'finishAt' })
   public finishAt: DateTime
 
+  @column({
+    columnName: 'target_date',
+    serializeAs: 'targetDate',
+    consume: (value) => moment(value).format('yyyy-MM-DD'),
+  })
+  public targetDate: string
+
   @column({ columnName: 'duration', serializeAs: 'duration' })
   public duration: number
 
   @column({ columnName: 'price', serializeAs: 'price', consume: (value) => +value })
   public price: number
 
-  @column({ columnName: 'location', serializeAs: 'location' })
+  @column()
   public location: string
 
-  @column({ columnName: 'latitude', serializeAs: 'latitude' })
+  @column({
+    columnName: 'latitude',
+    serializeAs: 'latitude',
+    consume: (value) => parseFloat(value),
+  })
   public latitude: number
 
-  @column({ columnName: 'longitude', serializeAs: 'longitude' })
+  @column({
+    columnName: 'longitude',
+    serializeAs: 'longitude',
+    consume: (value) => parseFloat(value),
+  })
   public longitude: number
 
   @column({ columnName: 'status', serializeAs: 'status' })
@@ -63,14 +87,19 @@ export default class Project extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
 
-  @computed()
-  public get totalWorkers() {
-    return this.workers?.length
-  }
-
   @hasMany(() => ProjectWorker, { foreignKey: 'projectId', localKey: 'id' })
   public workers: HasMany<typeof ProjectWorker>
 
   @hasMany(() => ProjectAbsent, { foreignKey: 'projectId', localKey: 'id' })
   public absents: HasMany<typeof ProjectAbsent>
+
+  @hasMany(() => ProjectBoq, { foreignKey: 'projectId', localKey: 'id' })
+  public boqs: HasMany<typeof ProjectBoq>
+
+  public serializeExtras() {
+    return {
+      totalWorker: this.$extras.totalWoker,
+      radius: this.$extras.radius,
+    }
+  }
 }

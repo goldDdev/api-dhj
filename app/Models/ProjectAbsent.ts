@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
-import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, belongsTo, column, scope } from '@ioc:Adonis/Lucid/Orm'
 import Employee from './Employee'
 import Project from './Project'
+import moment from 'moment'
 
 export enum AbsentType {
   A = 'A',
@@ -23,9 +24,15 @@ export default class ProjectAbsent extends BaseModel {
   public projectId: number
 
   @column()
+  // TODO : pls make coment here to inform jar, Thanks
+  // A = Absent = tidak datanng, P = Present = hadir
   public absent: string
 
-  @column({ columnName: 'absent_at', serializeAs: 'absentAt' })
+  @column({
+    columnName: 'absent_at',
+    serializeAs: 'absentAt',
+    consume: (value) => moment(value).format('yyyy-MM-DD'),
+  })
   public absentAt: string
 
   @column({ columnName: 'come_at', serializeAs: 'comeAt' })
@@ -34,23 +41,40 @@ export default class ProjectAbsent extends BaseModel {
   @column({ columnName: 'close_at', serializeAs: 'closeAt' })
   public closeAt: string
 
-  @column({ columnName: 'late_duration', serializeAs: 'lateDuration' })
+  @column({ columnName: 'location_at', serializeAs: 'locationAt' })
+  public locationAt: string
+
+  @column({ columnName: 'late_duration', serializeAs: 'lateDuration', consume: (value) => +value })
   public lateDuration: number
 
-  @column({ columnName: 'late_price', serializeAs: 'latePrice' })
+  @column({ columnName: 'late_price', serializeAs: 'latePrice', consume: (value) => +value })
   public latePrice: number
 
-  @column({ columnName: 'duration', serializeAs: 'duration' })
+  @column({ columnName: 'duration', serializeAs: 'duration', consume: (value) => +value })
   public duration: number
 
   @column()
   public photo: string
 
-  @column({ columnName: 'latitude', serializeAs: 'latitude' })
+  @column({ consume: (value) => parseFloat(value) })
   public latitude: number
 
-  @column({ columnName: 'longitude', serializeAs: 'longitude' })
+  @column({ consume: (value) => parseFloat(value) })
   public longitude: number
+
+  @column({
+    columnName: 'close_latitude',
+    serializeAs: 'closeLatitude',
+    consume: (value) => parseFloat(value),
+  })
+  public closeLatitude: number
+
+  @column({
+    columnName: 'close_longitude',
+    serializeAs: 'closeLongitude',
+    consume: (value) => parseFloat(value),
+  })
+  public closeLongitude: number
 
   @column({ columnName: 'absent_by', serializeAs: 'absentBy' })
   public absentBy: number
@@ -97,6 +121,22 @@ export default class ProjectAbsent extends BaseModel {
       cardID: this.$extras.cardID,
       phoneNumber: this.$extras.phoneNumber,
       role: this.$extras.role,
+      parentId: this.$extras.parent_id,
+      workerId: this.$extras.worker_id,
+      projectName: this.$extras.project_name,
+      projectStatus: this.$extras.project_status,
+      projectCompany: this.$extras.project_company,
+      projectLocation: this.$extras.project_location,
     }
   }
+
+  public static withWorker = scope((query) => {
+    query.joinRaw(
+      'INNER JOIN project_workers ON project_absents.employee_id = project_workers.employee_id AND project_absents.project_id = project_workers.project_id'
+    )
+  })
+
+  public static withEmployee = scope((query) => {
+    query.join('employees', 'employees.id', '=', 'project_absents.employee_id')
+  })
 }

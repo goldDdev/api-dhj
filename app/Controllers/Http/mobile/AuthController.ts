@@ -1,57 +1,26 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
+import codeError from 'Config/codeError'
 import Employee from 'App/Models/Employee'
 import User from 'App/Models/User'
-import codeError from 'config/codeError'
 export default class AuthController {
   public async login({ auth, request, response }: HttpContextContract) {
     try {
       const { email, password } = request.body()
       const { token } = await auth.use('api').attempt(email, password)
-      const model = await User.findOrFail(auth.user?.id)
+      const model = await User.find(auth.user?.id)
+      if (!model) {
+        return response.badRequest({
+          code: codeError.unauthorization,
+          error: 'Invalid credentials',
+        })
+      }
+
       await model.load('employee', (query) => query.preload('work'))
 
       return response.send({
-        data: {
-          token,
-          id: model.id,
-          employeeId: model.employeeId,
-          email: model.email,
-          ...model.employee.serialize({
-            fields: {
-              omit: ['id'],
-            },
-            relations: {
-              work: {
-                fields: {
-                  omit: ['parentId', 'employeeId'],
-                },
-              },
-            },
-          }),
-        },
-      })
-    } catch {
-      return response.unprocessableEntity({ code: codeError.entity, type: 'validation' })
-    }
-  }
-
-  public async logout({ auth, response }: HttpContextContract) {
-    try {
-      await auth.use('api').revoke()
-      return response.send(204)
-    } catch {
-      return response.badRequest({ error: 'Invalid credentials' })
-    }
-  }
-
-  public async current({ auth, response }: HttpContextContract) {
-    try {
-      await auth.use('api').authenticate()
-      const model = await User.findOrFail(auth.user?.id)
-      await model.load('employee', (query) => query.preload('work'))
-      return response.send({
+        token,
         id: model.id,
         employeeId: model.employeeId,
         email: model.email,
@@ -67,6 +36,56 @@ export default class AuthController {
             },
           },
         }),
+      })
+    } catch {
+      return response.unprocessableEntity({ code: codeError.entity, type: 'validation' })
+    }
+  }
+
+  public async logout({ auth, response }: HttpContextContract) {
+    try {
+      await auth.use('api').revoke()
+      return response.status(204)
+    } catch {
+      return response.badRequest({
+        code: codeError.unauthorization,
+        error: 'Invalid credentials',
+      })
+    }
+  }
+
+  public async current({ auth, response }: HttpContextContract) {
+    try {
+      await auth.use('api').authenticate()
+      const model = await User.findOrFail(auth.user?.id)
+      await model.load('employee', (query) => query.preload('work'))
+
+      const employee = model.employee.serialize()
+      return response.send({
+        id: model.id,
+        email: model.email,
+        employeeId: model.employeeId,
+        employee: {
+          id: employee.id,
+          name: employee.name,
+          role: employee.role,
+          phoneNumber: employee.phoneNumber,
+          cardID: employee.cardID,
+        },
+        // NOTE : skip first
+        // employeeId: model.employeeId,
+        // ...model.employee.serialize({
+        //   fields: {
+        //     omit: ['id'],
+        //   },
+        //   relations: {
+        //     work: {
+        //       fields: {
+        //         omit: ['parentId', 'employeeId'],
+        //       },
+        //     },
+        //   },
+        // }),
       })
     } catch (error) {
       return response.notFound({ code: codeError.notFound, type: 'notFound' })
@@ -87,7 +106,7 @@ export default class AuthController {
               table: 'employees',
               column: 'phone_number',
               whereNot: {
-                id: currentUser.id,
+                id: currentUser.employeeId,
               },
             }),
           ]),
@@ -113,7 +132,19 @@ export default class AuthController {
           await model.user.merge({ email }).save()
         }
         await trx.commit()
-        return response.status(204)
+        const user = model.user.serialize()
+        return response.send({
+          id: user.id,
+          email: user.email,
+          employeeId: user.employeeId,
+          employee: {
+            id: model.id,
+            name: model.name,
+            role: model.role,
+            phoneNumber: model.phoneNumber,
+            cardID: model.cardID,
+          },
+        })
       }
     } catch (error) {
       await trx.rollback()
@@ -133,11 +164,28 @@ export default class AuthController {
       })
 
       const user = await User.findOrFail(currentUser.id)
-      // TODO : current password validation
-      const { currentPassword, password } = request.body()
+      const { password } = request.body()
       await user.merge({ password }).save()
       // TODO : send to user.email
       return response.status(204)
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  // @ts-ignore
+  public async forgotPassword({ auth, request, response }: HttpContextContract) {
+    try {
+      // TODO : send email with code
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  // @ts-ignore
+  public async resetPassword({ auth, request, response }: HttpContextContract) {
+    try {
+      // TODO : verifiy email & code user -> reset with new password
     } catch (error) {
       return response.unprocessableEntity({ error })
     }

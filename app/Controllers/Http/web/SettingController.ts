@@ -36,7 +36,7 @@ export default class SettingController {
   }
 
   public async download({ response }: HttpContextContract) {
-    const filePath = Application.tmpPath('uploads/apk-dhj.apk')
+    const filePath = Application.tmpPath('uploads/app-dhj.apk')
     response.download(filePath)
   }
 }

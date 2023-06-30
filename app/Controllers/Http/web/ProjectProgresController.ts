@@ -39,7 +39,7 @@ export default class ProjectProgresController {
 
   public async all({ year, month, response, request }: HttpContextContract) {
     const boq = await ProjectBoq.query()
-      .select('project_boqs.name', 'project_boqs.id', 'project_boqs.type_unit')
+      .select('project_boqs.name', 'project_boqs.id', 'project_boqs.type_unit', 'project_boqs.type')
       .where('project_id', request.param('id'))
 
     const query = await Database.query()
@@ -49,6 +49,7 @@ export default class ProjectProgresController {
         'project_progres.project_boq_id',
         'project_boqs.name',
         'project_boqs.type_unit',
+        'project_boqs.type',
         'progres',
         'progres_at',
         'submited_progres',

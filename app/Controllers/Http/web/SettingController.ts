@@ -1,4 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import Application from '@ioc:Adonis/Core/Application'
 import Database from '@ioc:Adonis/Lucid/Database'
 import Setting from 'App/Models/Setting'
 
@@ -20,5 +21,22 @@ export default class SettingController {
     } catch (error) {
       return response.unprocessableEntity({ error })
     }
+  }
+
+  public async upload({ response, request }: HttpContextContract) {
+    try {
+      const apk = request.file('file')
+
+      if (apk) {
+        await apk.move(Application.tmpPath('uploads'))
+      }
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async download({ response }: HttpContextContract) {
+    const filePath = Application.tmpPath('uploads/app-dhj.apk')
+    response.download(filePath)
   }
 }

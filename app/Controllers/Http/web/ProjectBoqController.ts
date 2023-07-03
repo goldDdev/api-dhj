@@ -129,7 +129,11 @@ export default class ProjectBoqController {
       })
 
       await ProjectBoq.createMany(
-        payload.items.map((v) => ({ ...omit(v, ['row']), projectId: payload.projectId }))
+        payload.items.map((v) => ({
+          ...omit(v, ['row']),
+          projectId: payload.projectId,
+          totalPrice: (v.price || 0) * (v.unit || 0),
+        }))
       )
 
       return response.noContent()

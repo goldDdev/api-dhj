@@ -39,4 +39,9 @@ export default class SettingController {
     const filePath = Application.tmpPath('uploads/app-dhj.apk')
     response.download(filePath)
   }
+
+  public async boq({ response }: HttpContextContract) {
+    const filePath = Application.tmpPath('uploads/import-format.xlsx')
+    response.download(filePath)
+  }
 }

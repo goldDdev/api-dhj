@@ -4,7 +4,7 @@ Route.group(() => {
   Route.post('/login', 'AuthController.login')
   Route.get('/schedule/close', 'AbsentController.addClose')
   Route.get('/download', 'SettingController.download')
-  Route.get('/boq', 'SettingController.boq')
+  Route.get('/boqs', 'SettingController.boq')
   Route.post('/upload', 'SettingController.upload')
 
   Route.group(() => {

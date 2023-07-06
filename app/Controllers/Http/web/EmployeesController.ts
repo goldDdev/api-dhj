@@ -5,7 +5,7 @@ import Employee, { EmployeeType } from 'App/Models/Employee'
 import Project from 'App/Models/Project'
 import ProjectAbsent from 'App/Models/ProjectAbsent'
 import ProjectWorker, { ProjectWorkerStatus } from 'App/Models/ProjectWorker'
-
+import Logger from '@ioc:Adonis/Core/Logger'
 export default class EmployeesController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
@@ -215,17 +215,25 @@ export default class EmployeesController {
       const model = await Employee.find(request.input('id'), { client: trx })
       if (model) {
         const current = model
-        await model.load('user')
         await model.merge(emp).save()
-        if (email) {
-          await model.user.merge(password ? { email, password } : { email }).save()
+
+        if (payload.role !== EmployeeType.WORKER) {
+          await model.load('user')
+          if (model.user) {
+            await model.user
+              .merge(password ? { email, password: password || payload.phoneNumber } : { email })
+              .save()
+          } else {
+            await model.related('user').create({ email, password: password || model.phoneNumber })
+          }
         }
         await trx.commit()
         return response
           .status(200)
-          .json({ data: { ...current.serialize(), email: model.user.email } })
+          .json({ data: { ...current.serialize(), email: model.user?.email || '' } })
       }
     } catch (error) {
+      Logger.info(error)
       await trx.rollback()
       return response.unprocessableEntity({ error })
     }

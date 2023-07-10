@@ -203,6 +203,39 @@ export default class AbsentController {
               : Math.abs(lateDuration) * +latePrice,
             absent: ket ? ket.absent : 'P',
           })
+        } else {
+          if (findWork.absent === 'A' && ket && ket.absent === 'P') {
+            await findWork
+              .merge({
+                comeAt: ket
+                  ? ket.absent === 'A'
+                    ? undefined
+                    : lateDuration >= 0
+                    ? startWork.toFormat('HH:mm')
+                    : comeAt
+                  : comeAt,
+                lateDuration: ket
+                  ? ket.absent === 'A'
+                    ? 0
+                    : lateDuration >= 0
+                    ? 0
+                    : Math.abs(lateDuration)
+                  : lateDuration >= 0
+                  ? 0
+                  : Math.abs(lateDuration),
+                latePrice: ket
+                  ? ket.absent === 'A'
+                    ? 0
+                    : lateDuration >= 0
+                    ? 0
+                    : Math.abs(lateDuration) * +latePrice
+                  : lateDuration >= 0
+                  ? 0
+                  : Math.abs(lateDuration) * +latePrice,
+                absent: ket ? ket.absent : 'P',
+              })
+              .save()
+          }
         }
 
         await Tracking.create({

@@ -34,6 +34,7 @@ export default class EmployeesController {
             query.andWhereIn('role', ['WORKER', 'STAFF'])
           }
         })
+        .if(request.input('boq_type'), (query) => query.andWhere('type', request.input('boq_type')))
         .if(request.input('except'), async (query) => {
           const model = await ProjectWorker.query().where({
             project_id: request.input('except'),

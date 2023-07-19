@@ -367,15 +367,23 @@ export default class ProjectsController {
     }
   }
 
-  public async badge({ request, response }: HttpContextContract) {
+  public async badge({ request, response, now }: HttpContextContract) {
     try {
       const overtime = await await Database.from('request_overtimes')
         .where({ project_id: request.param('id') })
         .andWhereRaw("(status = 'PENDING' OR confirm_status = 'PENDING')")
         .count('* as total')
 
+      const milestone = await await Database.from('project_koms')
+        .where({ project_id: request.param('id') })
+        .andWhereRaw('date_plan = :date OR revise_1 = :date OR revise_2 = :date', {
+          date: now,
+        })
+        .count('* as total')
+
       return response.json({
         overtime: +overtime[0].total,
+        milestone: +milestone[0].total,
       })
     } catch (error) {
       return response.unprocessableEntity({ error })

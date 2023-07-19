@@ -41,6 +41,10 @@ export default class ProjectProgresController {
     const boq = await ProjectBoq.query()
       .select('project_boqs.name', 'project_boqs.id', 'project_boqs.type_unit', 'project_boqs.type')
       .where('project_id', request.param('id'))
+      .if(request.input('name'), (query) => {
+        query.whereILike('project_boqs.name', `%${request.input('name')}%`)
+      })
+      .paginate(request.input('page', 1), request.input('perPage', 15))
 
     const query = await Database.query()
       .from('project_progres')
@@ -65,6 +69,10 @@ export default class ProjectProgresController {
         'LEFT JOIN (SELECT name, users.id FROM users INNER JOIN employees ON employees.id = users.employee_id) AS aprove ON aprove.id = project_progres.aproved_by'
       )
       .where('project_progres.project_id', request.param('id'))
+      .whereIn(
+        'project_progres.project_boq_id',
+        boq.serialize().data.map((v) => v.id)
+      )
       .if(
         request.input('month'),
         (query) => {
@@ -97,6 +105,10 @@ export default class ProjectProgresController {
       .select('*', 'employees.name AS plan_by', 'plan_boqs.id')
       .withScopes((scope) => scope.withEmployee())
       .where('plan_boqs.project_id', request.param('id'))
+      .whereIn(
+        'plan_boqs.project_boq_id',
+        boq.serialize().data.map((v) => v.id)
+      )
       .if(
         request.input('month'),
         (query) => {
@@ -164,11 +176,12 @@ export default class ProjectProgresController {
     }, [])
 
     return response.ok({
-      data: boq.map((v) => ({
-        ...v.serialize(),
+      data: boq.serialize().data.map((v) => ({
+        ...v,
         data: newData.filter((f) => f.projectBoqId === v.id),
         plans: newPlan.filter((f) => f.projectBoqId === v.id),
       })),
+      total: boq.total,
     })
   }
 

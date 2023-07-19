@@ -6,6 +6,13 @@ Route.group(() => {
   Route.get('/dhj', 'SettingController.download')
   Route.get('/boqs', 'SettingController.boq')
   Route.post('/upload', 'SettingController.upload')
+  Route.post('/test', ({ request, response }) => {
+    return response.status(400).json({
+      error: {
+        ...(!request.input('name') ? { name: 'is exist' } : undefined),
+      },
+    })
+  })
 
   Route.group(() => {
     Route.group(() => {

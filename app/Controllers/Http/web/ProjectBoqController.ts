@@ -53,8 +53,9 @@ export default class ProjectBoqController {
           )
         }
       )
+      .paginate(request.input('page', 1), request.input('perPage', 15))
 
-    return response.send({ data: query })
+    return response.send(query)
   }
 
   public async search({ response, request }: HttpContextContract) {

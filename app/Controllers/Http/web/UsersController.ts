@@ -105,6 +105,7 @@ export default class UsersController {
             }),
           ]),
           role: schema.string(),
+          password: schema.string.optional(),
           email: schema.string.optional([
             rules.unique({
               table: 'users',
@@ -118,7 +119,7 @@ export default class UsersController {
         }),
       })
 
-      const { email, ...emp } = payload
+      const { email, password, ...emp } = payload
       const model = await Employee.find(request.input('id'), { client: trx })
       if (model) {
         const current = model
@@ -126,6 +127,10 @@ export default class UsersController {
         await model.merge(emp).save()
         if (email) {
           await model.user.merge({ email }).save()
+        }
+
+        if (password) {
+          await model.user.merge({ password }).save()
         }
         await trx.commit()
         return response
@@ -173,5 +178,38 @@ export default class UsersController {
     return response.ok({
       data: auth.user?.serialize(),
     })
+  }
+
+  public async validation({ request, response }: HttpContextContract) {
+    const error = {}
+    const model = await Database.query()
+      .from('users')
+      .select('users.id', 'users.email', 'employees.phone_number AS phoneNumber', 'employee_id')
+      .leftJoin('employees', 'employees.id', 'users.employee_id')
+
+      .if(request.input('id'), (query) => {
+        if (request.input('id') !== 0) {
+          query.where('users.id', '!=', request.input('id'))
+        }
+      })
+      .if(request.input('email'), (query) => {
+        query.orWhere('email', request.input('email'))
+      })
+      .if(request.input('phoneNumber'), (query) => {
+        query.orWhere('employees.phone_number', request.input('phoneNumber'))
+      })
+      .first()
+
+    if (model) {
+      if (model.email === request.input('email')) {
+        Object.assign(error, { email: 'Email ini sudah digunakan' })
+      }
+
+      if (model.phoneNumber === request.input('phoneNumber')) {
+        Object.assign(error, { phoneNumber: 'No Handphone ini sudah digunakan' })
+      }
+    }
+
+    return response.json(error)
   }
 }

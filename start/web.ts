@@ -6,13 +6,7 @@ Route.group(() => {
   Route.get('/dhj', 'SettingController.download')
   Route.get('/boqs', 'SettingController.boq')
   Route.post('/upload', 'SettingController.upload')
-  Route.post('/test', ({ request, response }) => {
-    return response.status(400).json({
-      error: {
-        ...(!request.input('name') ? { name: 'is exist' } : undefined),
-      },
-    })
-  })
+
 
   Route.group(() => {
     Route.group(() => {
@@ -133,6 +127,7 @@ Route.group(() => {
     Route.post('/logout', 'AuthController.logout')
 
     Route.resource('boq', 'BoqsController').except(['create', 'edit'])
+    Route.post('/user/validation', 'UsersController.validation')
     Route.resource('user', 'UsersController').except(['create', 'edit'])
     Route.resource('inventory', 'InventoryController').except(['create', 'edit'])
   }).middleware(['auth', 'tz'])

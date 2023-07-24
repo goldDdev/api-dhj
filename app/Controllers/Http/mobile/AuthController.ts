@@ -38,7 +38,10 @@ export default class AuthController {
         }),
       })
     } catch {
-      return response.unprocessableEntity({ code: codeError.entity, type: 'validation' })
+      return response.unprocessableEntity({
+        code: codeError.unauthorization,
+        error: 'Invalid credentials',
+      })
     }
   }
 

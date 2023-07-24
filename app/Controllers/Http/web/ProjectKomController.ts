@@ -6,7 +6,7 @@ export default class ProjectKomController {
   public async index({ response, request }: HttpContextContract) {
     return response.send(
       await ProjectKom.query()
-        .where('project_id', request.input('projectId'))
+        .where('project_id', request.param('id'))
         .if(request.input('status'), (query) => query.andWhere('status', request.input('status')))
         .if(request.input('title'), (query) =>
           query.andWhereILike('title', `%${request.input('title')}%`)

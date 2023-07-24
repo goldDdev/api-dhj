@@ -44,13 +44,13 @@ export default class ProjectBoqController {
       .if(
         request.input('orderBy'),
         (query) => {
-          query.orderBy('project_boqs.name', request.input('order', 'asc'))
-        },
-        (query) => {
           query.orderBy(
             `project_boqs.${request.input('orderBy', 'id')}`,
             request.input('order', 'asc')
           )
+        },
+        (query) => {
+          query.orderBy('project_boqs.name', request.input('order', 'asc'))
         }
       )
       .paginate(request.input('page', 1), request.input('perPage', 15))

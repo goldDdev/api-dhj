@@ -26,6 +26,9 @@
   "aceProviders": [
     "@adonisjs/repl"
   ],
+  "metaFiles": [
+    "tmp"
+  ],
   "tests": {
     "suites": [
       {

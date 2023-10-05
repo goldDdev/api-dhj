@@ -375,7 +375,7 @@ export default class AbsentController {
         })
         .firstOrFail()
 
-      const setting = await Setting.findByOrFail('code', SettingCode.OVERTIME_PRICE_PER_MINUTE)
+      // const setting = await Setting.findByOrFail('code', SettingCode.OVERTIME_PRICE_PER_MINUTE)
 
       const getAbsent = await Database.from('project_absents')
         .select(
@@ -405,7 +405,7 @@ export default class AbsentController {
 
       const closeWork = DateTime.fromObject({ hour: hour, minute: minute }, { zone: 'UTC+7' })
 
-      const closeTreshold = DateTime.fromObject({ hour: hour, minute: 15 }, { zone: 'UTC+7' })
+      // const closeTreshold = DateTime.fromObject({ hour: hour, minute: 15 }, { zone: 'UTC+7' })
 
       const comeAt = DateTime.fromObject(
         { hour: getAbsent.hour, minute: getAbsent.minute },

@@ -186,17 +186,12 @@ export default class UsersController {
       .from('users')
       .select('users.id', 'users.email', 'employees.phone_number AS phoneNumber', 'employee_id')
       .leftJoin('employees', 'employees.id', 'users.employee_id')
-
-      .if(request.input('id'), (query) => {
-        if (request.input('id') !== 0) {
-          query.where('users.id', '!=', request.input('id'))
-        }
-      })
+      .where('employee_id', '!=', request.input('id'))
       .if(request.input('email'), (query) => {
-        query.orWhere('email', request.input('email'))
+        query.where('email', '=', request.input('email'))
       })
       .if(request.input('phoneNumber'), (query) => {
-        query.orWhere('employees.phone_number', request.input('phoneNumber'))
+        query.where('employees.phone_number', request.input('phoneNumber'))
       })
       .first()
 

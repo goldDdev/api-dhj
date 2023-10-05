@@ -25,33 +25,33 @@ export default class PayrolController {
 
   public async create({ request, response }: HttpContextContract) {
     try {
-      const payload = await request.validate({
-        schema: schema.create({
-          employeeId: schema.number.optional(),
-          salary: schema.number.optional(),
-          hourlyWages: schema.number.optional(),
-          total: schema.number.optional(),
-          duration: schema.number.optional(),
-          month: schema.number.optional(),
-          year: schema.number.optional(),
-          payAt: schema.string.optional(),
-          overtimePrice: schema.number.optional(),
-          latePrice: schema.number.optional(),
-          totalPresent: schema.number.optional(),
-          totalAbsent: schema.number.optional(),
-          totalOvertime: schema.number.optional(),
-          totalLate: schema.number.optional(),
-          totalOvertimeDuration: schema.number.optional(),
-          totalLateDuration: schema.number.optional(),
-          otherCut: schema.number.optional(),
-          salaryCut: schema.number.optional(),
-          otherAdditional: schema.number.optional(),
-          status: schema.string.optional(),
-          note: schema.string.optional(),
-          noteOtherCut: schema.string.optional(),
-          noteOtherAdditional: schema.string.optional(),
-        }),
-      })
+      // const payload = await request.validate({
+      //   schema: schema.create({
+      //     employeeId: schema.number.optional(),
+      //     salary: schema.number.optional(),
+      //     hourlyWages: schema.number.optional(),
+      //     total: schema.number.optional(),
+      //     duration: schema.number.optional(),
+      //     month: schema.number.optional(),
+      //     year: schema.number.optional(),
+      //     payAt: schema.string.optional(),
+      //     overtimePrice: schema.number.optional(),
+      //     latePrice: schema.number.optional(),
+      //     totalPresent: schema.number.optional(),
+      //     totalAbsent: schema.number.optional(),
+      //     totalOvertime: schema.number.optional(),
+      //     totalLate: schema.number.optional(),
+      //     totalOvertimeDuration: schema.number.optional(),
+      //     totalLateDuration: schema.number.optional(),
+      //     otherCut: schema.number.optional(),
+      //     salaryCut: schema.number.optional(),
+      //     otherAdditional: schema.number.optional(),
+      //     status: schema.string.optional(),
+      //     note: schema.string.optional(),
+      //     noteOtherCut: schema.string.optional(),
+      //     noteOtherAdditional: schema.string.optional(),
+      //   }),
+      // })
 
       return response.created({
         data: request.all(),

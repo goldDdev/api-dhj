@@ -32,7 +32,7 @@ export default class PlanBoqController {
 
       .if(
         request.input('all'),
-        (query) => {},
+        () => {},
         (query) => {
           query.andWhere('employee_id', auth.user!.employeeId)
         }

@@ -1,6 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { schema } from '@ioc:Adonis/Core/Validator'
-import Boq from 'App/Models/Boq'
 import Employee, { EmployeeType } from 'App/Models/Employee'
 import Project from 'App/Models/Project'
 import WeeklyPlans from 'App/Models/WeeklyPlan'

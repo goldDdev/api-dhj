@@ -132,7 +132,6 @@ export default class EmployeesController {
             }),
           ]),
           cardID: schema.string([
-            rules.minLength(8),
             rules.unique({
               table: 'employees',
               column: 'card_id',
@@ -401,7 +400,6 @@ export default class EmployeesController {
             }),
           ]),
           cardID: schema.string([
-            rules.minLength(8),
             rules.unique({
               table: 'employees',
               column: 'card_id',

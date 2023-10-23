@@ -1,8 +1,12 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Logger from '@ioc:Adonis/Core/Logger'
 import { schema } from '@ioc:Adonis/Core/Validator'
+import Database from '@ioc:Adonis/Lucid/Database'
 import PlanBoq from 'App/Models/PlanBoq'
+import ProjectBoq from 'App/Models/ProjectBoq'
 import codeError from 'Config/codeError'
+import { DateTime } from 'luxon'
+import moment from 'moment'
 
 export default class PlanBoqController {
   public async index({ auth, response, request, month, year }: HttpContextContract) {
@@ -120,5 +124,62 @@ export default class PlanBoqController {
     } catch (error) {
       return response.unprocessableEntity({ error })
     }
+  }
+
+  public async progres({ request, response, month, year }: HttpContextContract) {
+    const queryPlan = await PlanBoq.query()
+      .select('*', 'employees.name AS plan_by', 'plan_boqs.id')
+      .withScopes((scope) => scope.withEmployee())
+      .where('plan_boqs.project_id', request.param('id'))
+      .andWhere({ 'plan_boqs.project_boq_id': request.input('id') })
+      .if(
+        request.input('month'),
+        (query) => {
+          query.andWhereRaw(
+            '(EXTRACT(MONTH FROM start_date) = :month OR EXTRACT(MONTH FROM end_date) = :month)',
+            {
+              month: request.input('month'),
+            }
+          )
+        },
+        (query) =>
+          query.andWhereRaw(
+            '(EXTRACT(MONTH FROM start_date) = :month OR EXTRACT(MONTH FROM end_date) = :month)',
+            {
+              month: month,
+            }
+          )
+      )
+      .if(
+        request.input('year'),
+        (query) => {
+          query.andWhereRaw(
+            '(EXTRACT(YEAR FROM start_date) = :year OR EXTRACT(YEAR FROM end_date) = :year)',
+            {
+              year: request.input('year'),
+            }
+          )
+        },
+        (query) =>
+          query.andWhereRaw(
+            '(EXTRACT(YEAR FROM start_date) = :year OR EXTRACT(YEAR FROM end_date) = :year)',
+            {
+              year: year,
+            }
+          )
+      )
+      .if(request.input('sort', 'asc'), (query) =>
+        query.orderBy('start_date', request.input('sort', 'asc'))
+      )
+
+    return response.ok(
+      queryPlan.map((v) =>
+        v.serialize({
+          fields: {
+            pick: ['id', 'projectBoqId', 'progress', 'startDate', 'endDate', 'planBy'],
+          },
+        })
+      )
+    )
   }
 }

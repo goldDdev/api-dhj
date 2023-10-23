@@ -1,5 +1,7 @@
 import Route from '@ioc:Adonis/Core/Route'
 
+Route.get('/plan-boq/progres', 'PlanBoqController.progres')
+
 Route.group(() => {
   Route.group(() => {
     Route.post('/login', 'AuthController.login')
@@ -44,8 +46,13 @@ Route.group(() => {
     Route.group(() => {
       Route.post('/progress', 'PlanBoqController.create')
       Route.get('/:id/progress', 'PlanBoqController.index')
+      Route.get('/:id/list', 'PlanBoqController.progres')
       Route.delete('/:id', 'PlanBoqController.destroy')
     }).prefix('plan')
+
+    Route.group(() => {
+      Route.get('/:id/list', 'ProgressController.progres')
+    }).prefix('progress')
 
     Route.group(() => {
       Route.post('/', 'AdditionalHourController.create')

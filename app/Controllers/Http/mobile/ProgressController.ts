@@ -1,12 +1,5 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import Logger from '@ioc:Adonis/Core/Logger'
-import { schema } from '@ioc:Adonis/Core/Validator'
 import Database from '@ioc:Adonis/Lucid/Database'
-import PlanBoq from 'App/Models/PlanBoq'
-import ProjectBoq from 'App/Models/ProjectBoq'
-import codeError from 'Config/codeError'
-import { DateTime } from 'luxon'
-import moment from 'moment'
 
 export default class ProgressController {
   public async progres({ request, response, month, year }: HttpContextContract) {

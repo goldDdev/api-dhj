@@ -56,6 +56,12 @@ export default class ProjectBoq extends BaseModel {
   @column()
   public type: string
 
+  @column({ columnName: 'code', serializeAs: 'code' })
+  public code: string
+
+  @column({ columnName: 'description', serializeAs: 'description' })
+  public description: string
+
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 

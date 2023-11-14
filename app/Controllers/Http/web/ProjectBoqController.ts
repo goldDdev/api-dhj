@@ -29,7 +29,9 @@ export default class ProjectBoqController {
         'progres_at',
         'progres_by',
         'total_price',
-        'type'
+        'type',
+        'description',
+        'code'
       )
       .withScopes((scope) => {
         scope.withLastProgres()
@@ -106,6 +108,8 @@ export default class ProjectBoqController {
           price: schema.number.optional(),
           type: schema.string.optional(),
           totalPrice: schema.number.optional(),
+          description: schema.string.optional(),
+          code: schema.string.optional(),
         }),
       })
 
@@ -131,7 +135,7 @@ export default class ProjectBoqController {
 
       await ProjectBoq.createMany(
         payload.items.map((v) => ({
-          ...omit(v, ['row']),
+          ...omit(v, ['row', 'type']),
           projectId: payload.projectId,
           totalPrice: (v.price || 0) * (v.unit || 0),
         }))
@@ -158,6 +162,8 @@ export default class ProjectBoqController {
           additionalUnit: schema.number.optional(),
           additionalPrice: schema.number.optional(),
           type: schema.string.optional(),
+          description: schema.string.optional(),
+          code: schema.string.optional(),
         }),
       })
 
@@ -238,6 +244,23 @@ export default class ProjectBoqController {
       return response.created({
         data: model.serialize(),
       })
+    } catch (error) {
+      return response.unprocessableEntity({ error })
+    }
+  }
+
+  public async types({ request, response }: HttpContextContract) {
+    try {
+      const data = await Database.query()
+        .distinct(['description AS type'])
+        .from('project_boqs')
+        .whereNotNull('description')
+        .if(request.input('keyword'), (query) => {
+          query.whereILike('description', `%${request.input('keyword')}%`)
+        })
+        .orderBy('description', 'asc')
+
+      return response.json({ data: data })
     } catch (error) {
       return response.unprocessableEntity({ error })
     }

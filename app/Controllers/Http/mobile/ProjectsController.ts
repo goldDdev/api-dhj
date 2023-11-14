@@ -353,7 +353,8 @@ export default class ProjectsController {
           'progres',
           'progres_at',
           'progres_by',
-          'type'
+          Database.raw('COALESCE(project_boqs.type, project_boqs.description) AS type'),
+          'code'
         )
         .withScopes((scope) => {
           scope.withLastProgres()

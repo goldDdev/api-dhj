@@ -7,7 +7,6 @@ Route.group(() => {
   Route.get('/boqs', 'SettingController.boq')
   Route.post('/upload', 'SettingController.upload')
 
-
   Route.group(() => {
     Route.group(() => {
       Route.get('/', 'EmployeesController.index')
@@ -27,6 +26,7 @@ Route.group(() => {
 
     Route.group(() => {
       Route.get('/', 'SettingController.index')
+      Route.get('/boq-types', 'ProjectBoqController.types')
       Route.put('/', 'SettingController.update')
     }).prefix('setting')
 

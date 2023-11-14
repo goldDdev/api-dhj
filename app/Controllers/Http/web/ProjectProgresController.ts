@@ -39,7 +39,12 @@ export default class ProjectProgresController {
 
   public async all({ year, month, response, request }: HttpContextContract) {
     const boq = await ProjectBoq.query()
-      .select('project_boqs.name', 'project_boqs.id', 'project_boqs.type_unit', 'project_boqs.type')
+      .select(
+        'project_boqs.name',
+        'project_boqs.id',
+        'project_boqs.type_unit',
+        Database.raw('COALESCE(project_boqs.type, project_boqs.description) AS type')
+      )
       .where('project_id', request.param('id'))
       .if(request.input('name'), (query) => {
         query.whereILike('project_boqs.name', `%${request.input('name')}%`)
@@ -53,7 +58,7 @@ export default class ProjectProgresController {
         'project_progres.project_boq_id',
         'project_boqs.name',
         'project_boqs.type_unit',
-        'project_boqs.type',
+        Database.raw('COALESCE(project_boqs.type, project_boqs.description) AS type'),
         'progres',
         'progres_at',
         'submited_progres',

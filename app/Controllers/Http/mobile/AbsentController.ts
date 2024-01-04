@@ -9,6 +9,9 @@ import { DateTime } from 'luxon'
 import CenterLocation from 'App/Models/CenterLocation'
 import Tracking from 'App/Models/Tracking'
 import Project from 'App/Models/Project'
+import { EmployeeType } from 'App/Models/Employee'
+import DailyPlan from 'App/Models/DailyPlan'
+import WeeklyPlans from 'App/Models/WeeklyPlan'
 
 export default class AbsentController {
   public async index({ auth, response, month, year, request }: HttpContextContract) {
@@ -589,6 +592,316 @@ export default class AbsentController {
     }
   }
 
+  public async offlineAbsent({ auth, request, response }: HttpContextContract) {
+    const trx = await Database.transaction()
+    try {
+      let absents: any[] = []
+
+      const radius = await Setting.query().where({ code: SettingCode.RADIUS }).first()
+      const location = await CenterLocation.query()
+        .whereRaw(`calculate_distance(latitude, longitude, :lat, :long, 'MTR') <= :radius`, {
+          radius: +(radius?.value || 0),
+          lat: request.input('latitude', 0),
+          long: request.input('longitude', 0),
+        })
+        .first()
+
+      const project = await Project.query()
+        .whereRaw(`calculate_distance(latitude, longitude, :lat, :long, 'MTR') <= :radius`, {
+          radius: +(radius?.value || 0),
+          lat: request.input('latitude', 0),
+          long: request.input('longitude', 0),
+        })
+        .first()
+
+      const { value: latePrice } = await Database.from('settings')
+        .where('code', SettingCode.LATETIME_PRICE_PER_MINUTE)
+        .first()
+
+      const { value: lateTreshold } = await Database.from('settings')
+        .where('code', SettingCode.LATE_TRESHOLD)
+        .first()
+
+      const { hour, minute } = await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.START_TIME)
+        .first()
+
+      const comeAt = request.input('time')
+      const absentAt = DateTime.fromISO(`${request.input('date')}T${request.input('time')}`)
+      const startWork = DateTime.fromObject(
+        {
+          year: absentAt.year,
+          month: absentAt.month,
+          day: absentAt.day,
+          hour: hour,
+          minute: minute,
+        },
+        { zone: 'UTC+7' }
+      )
+      const startWorkLate = DateTime.fromObject(
+        {
+          year: absentAt.year,
+          month: absentAt.month,
+          day: absentAt.day,
+          hour: hour,
+          minute: lateTreshold,
+        },
+        { zone: 'UTC+7' }
+      )
+      const lateDuration = Math.round(
+        startWorkLate.diff(
+          DateTime.fromISO(`${request.input('date')}T${request.input('time')}`),
+          'minutes'
+        ).minutes
+      )
+
+      if (auth.user!.employee.role === EmployeeType.MANDOR) {
+        await ProjectWorker.query()
+          .where({
+            project_id: auth.user?.employee?.work?.projectId,
+            status: ProjectWorkerStatus.ACTIVE,
+          })
+          .andWhereRaw('(project_workers.id = :id OR project_workers.parent_id = :id)', {
+            id: auth.user?.employee?.work?.id!,
+          })
+          .then(async (workers) => {
+            const currentAbsents: number[] = await ProjectAbsent.query()
+              .whereIn(
+                'employee_id',
+                workers.map((v) => v.employeeId)
+              )
+              .where({
+                projectId: auth.user?.employee?.work?.projectId,
+                absentAt: request.input('date'),
+              })
+              .then((abs) => {
+                return abs.map((v) => v.employeeId)
+              })
+              .catch(() => {
+                return []
+              })
+
+            absents = workers
+              .filter((v) => !currentAbsents.includes(v.employeeId))
+              .map((v) => ({
+                projectId: v.projectId,
+                employeeId: v.employeeId,
+              }))
+          })
+      } else {
+        let projects: number[] = []
+        await DailyPlan.query()
+          .where({
+            employee_id: auth.user?.employeeId,
+            date: request.input('date'),
+          })
+          .then((value) => {
+            value.forEach((v) => projects.push(v.projectId))
+          })
+
+        await WeeklyPlans.query()
+          .where('employee_id', auth.user!.employeeId)
+          .andWhereRaw(
+            '((start_date >= :start_date AND end_date <= :end_date) OR (end_date >= :start_date AND end_date <= :end_date))',
+            {
+              start_date: request.input('date'),
+              end_date: request.input('date'),
+            }
+          )
+          .then((value) => {
+            value.forEach((v) => projects.push(v.projectId))
+          })
+
+        await ProjectAbsent.query()
+          .where({
+            employee_id: auth.user?.employeeId,
+            absent_at: request.input('date'),
+          })
+          .then((value) => {
+            projects = projects.filter((v) => !value.map((_v) => _v.projectId).includes(v))
+          })
+
+        projects = Array.from(new Set(projects))
+        absents = projects.map((v) => ({ projectId: v, employeeId: auth.user?.employeeId }))
+      }
+
+      if (absents.length > 0) {
+        await ProjectAbsent.createMany(
+          absents.map((abs) => ({
+            absentAt: request.input('date'),
+            absentBy: auth.user?.employeeId,
+            projectId: abs.projectId,
+            employeeId: abs.employeeId,
+            latitude: request.input('latitude', 0),
+            longitude: request.input('longitude', 0),
+            comeAt: request.input('absent')
+              ? request.input('absent') === 'A'
+                ? undefined
+                : lateDuration >= 0
+                ? startWork.toFormat('HH:mm')
+                : comeAt
+              : comeAt,
+            lateDuration: request.input('absent')
+              ? request.input('absent') === 'A'
+                ? 0
+                : lateDuration >= 0
+                ? 0
+                : Math.abs(lateDuration)
+              : lateDuration >= 0
+              ? 0
+              : Math.abs(lateDuration),
+            latePrice: request.input('absent')
+              ? request.input('absent') === 'A'
+                ? 0
+                : lateDuration >= 0
+                ? 0
+                : Math.abs(lateDuration) * +latePrice
+              : lateDuration >= 0
+              ? 0
+              : Math.abs(lateDuration) * +latePrice,
+            absent: request.input('absent', 'P'),
+          })),
+          { client: trx }
+        )
+
+        await Tracking.create(
+          {
+            locationId: location?.id,
+            projectId: project?.id,
+            latitude: request.input('latitude', 0),
+            longitude: request.input('longitude', 0),
+            employeeId: auth.user?.employeeId,
+            createdAt: DateTime.local({ zone: 'UTC+7' }),
+          },
+          { client: trx }
+        )
+      }
+      await trx.commit()
+      return response.noContent()
+    } catch (err) {
+      Logger.info(err)
+      await trx.rollback()
+      return response.notFound({ code: codeError.notFound, type: 'notFound' })
+    }
+  }
+
+  public async offlineAbsentClose({ auth, request, response }: HttpContextContract) {
+    const trx = await Database.transaction()
+    try {
+      let absents: any[] = []
+      let workers: number[] = []
+      let updateData = {
+        closeAt: '',
+        duration: 0,
+        closeLatitude: request.input('latitude', 0),
+        closeLongitude: request.input('longitude', 0),
+      }
+      const absentAt = DateTime.fromISO(`${request.input('date')}T${request.input('time')}`)
+      const { hour, minute } = await Database.from('settings')
+        .select(
+          Database.raw(
+            'EXTRACT(hour from "value"::time)::int AS hour,EXTRACT(minute from "value"::time)::int AS minute'
+          )
+        )
+        .where('code', SettingCode.CLOSE_TIME)
+        .first()
+
+      if (auth?.user?.employee?.role === EmployeeType.MANDOR) {
+        await ProjectWorker.query()
+          .where({
+            project_id: auth.user?.employee?.work?.projectId,
+            status: ProjectWorkerStatus.ACTIVE,
+          })
+          .andWhereRaw('(project_workers.id = :id OR project_workers.parent_id = :id)', {
+            id: auth.user?.employee?.work?.id!,
+          })
+          .then((values) => {
+            workers = values.map((v) => v.employeeId)
+          })
+      } else {
+        workers = [auth.user!.employeeId]
+      }
+
+      await Database.from('project_absents')
+        .select(
+          'id',
+          Database.raw(
+            `EXTRACT(hour from "come_at"::time)::int AS hour,
+            EXTRACT(minute from "come_at"::time)::int AS minute,
+            EXTRACT(day from "absent_at"::date)::int AS day,
+            EXTRACT(month from "absent_at"::date)::int AS month,
+            EXTRACT(year from "absent_at"::date)::int AS year
+            `
+          ),
+          'absent_at'
+        )
+        .where({
+          absent_at: request.input('date'),
+        })
+        .andWhereIn('employee_id', workers)
+        .andWhereNotNull('absent')
+        .andWhereNull('close_at')
+        .then((values) => {
+          values.forEach((value, i) => {
+            if (i === 0) {
+              const comeAt = DateTime.fromObject(
+                {
+                  year: value.year,
+                  month: value.month,
+                  day: value.day,
+                  hour: value.hour,
+                  minute: value.minute,
+                },
+                { zone: 'UTC+7' }
+              )
+
+              const closeWork = DateTime.fromObject(
+                {
+                  year: value.year,
+                  month: value.month,
+                  day: value.day,
+                  hour: hour,
+                  minute: minute,
+                },
+                { zone: 'UTC+7' }
+              )
+
+              const duration = Math.round(
+                (absentAt.toSeconds() < closeWork.toSeconds() ? absentAt : closeWork).diff(
+                  comeAt,
+                  'minutes'
+                ).minutes
+              )
+              const closeAt = absentAt.toSeconds() < closeWork.toSeconds() ? absentAt : closeWork
+              const closeTime = closeAt.toFormat('HH:mm')
+              updateData = { ...updateData, closeAt: closeTime, duration }
+            }
+
+            absents.push(value.id)
+          })
+        })
+
+      if (absents.length > 0) {
+        await ProjectAbsent.query({ client: trx })
+          .whereIn('id', absents)
+          .andWhereNull('close_at')
+          .update(updateData)
+      }
+
+      await trx.commit()
+      return response.json({ absents })
+    } catch (err) {
+      Logger.info(err)
+      await trx.rollback()
+      return response.notFound({ code: codeError.notFound, type: 'notFound' })
+    }
+  }
+
   public async closeSingle({ auth, request, now, response }: HttpContextContract) {
     const trx = await Database.transaction()
     try {
@@ -638,6 +951,7 @@ export default class AbsentController {
         await ProjectAbsent.query({ client: trx })
           .where('id', currentAbsent.id)
           .andWhereNull('close_at')
+          .andWhere('absent', 'P')
           .update({
             closeAt: closeTime,
             duration,

@@ -592,10 +592,12 @@ export default class AbsentController {
     }
   }
 
-  public async offlineAbsent({ auth, request, response }: HttpContextContract) {
+  public async offlineAbsent({ auth, request, now, time, response }: HttpContextContract) {
     const trx = await Database.transaction()
     try {
       let absents: any[] = []
+
+      const [date, times] = request.input('time').split(' ')
 
       const radius = await Setting.query().where({ code: SettingCode.RADIUS }).first()
       const location = await CenterLocation.query()
@@ -631,8 +633,8 @@ export default class AbsentController {
         .where('code', SettingCode.START_TIME)
         .first()
 
-      const comeAt = request.input('time')
-      const absentAt = DateTime.fromISO(`${request.input('date')}T${request.input('time')}`)
+      const comeAt = times || time
+      const absentAt = DateTime.fromISO(`${date || now}T${times || time}`)
       const startWork = DateTime.fromObject(
         {
           year: absentAt.year,
@@ -654,10 +656,7 @@ export default class AbsentController {
         { zone: 'UTC+7' }
       )
       const lateDuration = Math.round(
-        startWorkLate.diff(
-          DateTime.fromISO(`${request.input('date')}T${request.input('time')}`),
-          'minutes'
-        ).minutes
+        startWorkLate.diff(DateTime.fromISO(`${date || now}T${times || time}`), 'minutes').minutes
       )
 
       if (auth.user!.employee.role === EmployeeType.MANDOR) {
@@ -677,7 +676,7 @@ export default class AbsentController {
               )
               .where({
                 projectId: auth.user?.employee?.work?.projectId,
-                absentAt: request.input('date'),
+                absentAt: date || now,
               })
               .then((abs) => {
                 return abs.map((v) => v.employeeId)
@@ -698,7 +697,7 @@ export default class AbsentController {
         await DailyPlan.query()
           .where({
             employee_id: auth.user?.employeeId,
-            date: request.input('date'),
+            date: date || now,
           })
           .then((value) => {
             value.forEach((v) => projects.push(v.projectId))
@@ -709,8 +708,8 @@ export default class AbsentController {
           .andWhereRaw(
             '((start_date >= :start_date AND end_date <= :end_date) OR (end_date >= :start_date AND end_date <= :end_date))',
             {
-              start_date: request.input('date'),
-              end_date: request.input('date'),
+              start_date: date || now,
+              end_date: date || now,
             }
           )
           .then((value) => {
@@ -720,7 +719,7 @@ export default class AbsentController {
         await ProjectAbsent.query()
           .where({
             employee_id: auth.user?.employeeId,
-            absent_at: request.input('date'),
+            absent_at: date || now,
           })
           .then((value) => {
             projects = projects.filter((v) => !value.map((_v) => _v.projectId).includes(v))
@@ -733,7 +732,7 @@ export default class AbsentController {
       if (absents.length > 0) {
         await ProjectAbsent.createMany(
           absents.map((abs) => ({
-            absentAt: request.input('date'),
+            absentAt: date || now,
             absentBy: auth.user?.employeeId,
             projectId: abs.projectId,
             employeeId: abs.employeeId,
@@ -790,9 +789,10 @@ export default class AbsentController {
     }
   }
 
-  public async offlineAbsentClose({ auth, request, response }: HttpContextContract) {
+  public async offlineAbsentClose({ auth, request, now, time, response }: HttpContextContract) {
     const trx = await Database.transaction()
     try {
+      const [date, times] = request.input('time').split(' ')
       let absents: any[] = []
       let workers: number[] = []
       let updateData = {
@@ -801,7 +801,7 @@ export default class AbsentController {
         closeLatitude: request.input('latitude', 0),
         closeLongitude: request.input('longitude', 0),
       }
-      const absentAt = DateTime.fromISO(`${request.input('date')}T${request.input('time')}`)
+      const absentAt = DateTime.fromISO(`${date || now}T${times || time}`)
       const { hour, minute } = await Database.from('settings')
         .select(
           Database.raw(
@@ -841,7 +841,7 @@ export default class AbsentController {
           'absent_at'
         )
         .where({
-          absent_at: request.input('date'),
+          absent_at: date || now,
         })
         .andWhereIn('employee_id', workers)
         .andWhereNotNull('absent')
